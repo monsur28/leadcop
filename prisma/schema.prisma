@@ -1,0 +1,319 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// ENUMS
+// -----------------------------------------------------------------------------
+
+enum GlobalRole {
+  USER
+  ADMIN
+}
+
+enum ApiKeyType {
+  PUBLIC
+  SECRET
+}
+
+// Simplified for MVP. Removed RISKY and TYPO. 
+// Typos should be handled as a separate 'didYouMean' payload field, not a definitive status.
+enum ValidationStatus {
+  VALID
+  INVALID
+  DISPOSABLE
+  ROLE
+  FREE_PROVIDER
+  BLOCKLISTED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum UpgradeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BlocklistType {
+  DOMAIN
+  EMAIL
+}
+
+enum BlocklistAction {
+  BLOCK
+  ALLOW
+}
+
+enum NewsletterStatus {
+  SUBSCRIBED
+  UNSUBSCRIBED
+}
+
+// -----------------------------------------------------------------------------
+// MODELS
+// -----------------------------------------------------------------------------
+
+model User {
+  id               String     @id @default(uuid())
+  email            String     @unique
+  name             String
+  image            String?
+  passwordHash     String?
+  stripeCustomerId String?    @unique
+  globalRole       GlobalRole @default(USER)
+
+  accounts         Account[]
+  subscription     Subscription?
+  payments         Payment[]
+  upgradeRequests  UpgradeRequest[]
+  domains          Domain[]
+  usageCounters    UsageCounter[]
+  customBlocklists CustomBlocklist[]
+  cmsPages         CmsPage[]
+  blogPosts        BlogPost[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([stripeCustomerId])
+}
+
+model Plan {
+  id                  String         @id @default(uuid())
+  slug                String         @unique // Immutable identifier for business logic
+  name                String         // Editable display name (e.g., "Starter Free")
+  isActive            Boolean        @default(true) // Soft-disable plans without breaking active subs
+  monthlyPrice        Int
+  yearlyPrice         Int
+  quotaLimit          Int
+  domainLimit         Int
+  roleDetection       Boolean
+  publicDetection     Boolean
+  customBlocklist     Boolean
+  bulkValidationLimit Int
+  teamSeats           Int
+
+  subscriptions       Subscription[]
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@index([slug])
+}
+
+model Subscription {
+  id               String             @id @default(uuid())
+  userId           String             @unique
+  planId           String
+  status           SubscriptionStatus
+  currentPeriodEnd DateTime
+  
+  // Custom Overrides
+  extraCredits     Int                @default(0)
+  isUnlimited      Boolean            @default(false)
+
+  user             User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan             Plan  @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  @@index([status])
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  userId        String?
+  amount        Int
+  currency      String
+  status        PaymentStatus
+  providerTxId  String        @unique
+
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model UpgradeRequest {
+  id              String               @id @default(uuid())
+  userId          String
+  requestedPlanId String
+  status          UpgradeRequestStatus @default(PENDING)
+
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([status])
+}
+
+model Domain {
+  id                String    @id @default(uuid())
+  userId            String
+  hostname          String
+  isActive          Boolean   @default(true)
+  isVerified        Boolean   @default(false)
+  verificationToken String?   @unique
+  verifiedAt        DateTime?
+
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKeys           ApiKey[]
+  validationLogs    ValidationLog[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, hostname])
+}
+
+model ApiKey {
+  id         String     @id @default(uuid())
+  domainId   String
+  name       String
+  keyHash    String     @unique
+  prefix     String
+  type       ApiKeyType
+  isActive   Boolean    @default(true)
+
+  domain     Domain          @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  validationLogs ValidationLog[]
+
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@index([domainId])
+}
+
+model UsageCounter {
+  id              String @id @default(uuid())
+  userId          String
+  month           Int
+  year            Int
+  usedValidations Int    @default(0)
+
+  user            User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, month, year])
+  // Composite index for fast aggregations across months
+  @@index([userId, year, month]) 
+}
+
+model ValidationLog {
+  id              String           @id @default(uuid())
+  domainId        String
+  apiKeyId        String?
+  validatedDomain String
+  status          ValidationStatus
+
+  domain          Domain  @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  apiKey          ApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([domainId, createdAt(sort: Desc)])
+  @@index([apiKeyId])
+}
+
+model CustomBlocklist {
+  id        String          @id @default(uuid())
+  userId    String
+  value     String
+  type      BlocklistType
+  action    BlocklistAction
+
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, type, value])
+  @@index([userId, value])
+}
+
+model CmsPage {
+  id             String   @id @default(uuid())
+  authorId       String?
+  slug           String   @unique
+  title          String
+  seoTitle       String?
+  seoDescription String?
+  content        String   @db.Text
+  published      Boolean  @default(false)
+
+  author         User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model BlogPost {
+  id             String   @id @default(uuid())
+  authorId       String?
+  slug           String   @unique
+  title          String
+  excerpt        String?
+  featuredImage  String?
+  seoTitle       String?
+  seoDescription String?
+  content        String   @db.Text
+  published      Boolean  @default(false)
+
+  author         User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model NewsletterSubscriber {
+  id        String           @id @default(uuid())
+  email     String           @unique
+  status    NewsletterStatus @default(SUBSCRIBED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
