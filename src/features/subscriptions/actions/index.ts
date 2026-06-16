@@ -20,23 +20,23 @@ async function requireAdmin() {
 // ------------------------------------------------------------------
 
 export async function assignSubscriptionAction(input: unknown) {
-  await requireAdmin();
-  return withActionHandler(assignSubscriptionSchema, input, async (data) => {
+  return withActionHandler(assignSubscriptionSchema, input, async (data: any) => {
+    await requireAdmin();
     return await SubscriptionService.assignOrUpdate(data);
   });
 }
 
 export async function updateSubscriptionAction(input: unknown) {
-  await requireAdmin();
-  return withActionHandler(updateSubscriptionSchema, input, async (data) => {
+  return withActionHandler(updateSubscriptionSchema, input, async (data: any) => {
+    await requireAdmin();
     return await SubscriptionService.updateSubscription(data);
   });
 }
 
-export async function adjustCreditsAction(input: unknown) {
-  await requireAdmin();
-  const schema = z.object({ userId: z.string().uuid(), amount: z.number().int() });
-  return withActionHandler(schema, input, async (data) => {
+export async function processCreditsAction(input: unknown) {
+  const schema = z.object({ userId: z.string(), amount: z.number() });
+  return withActionHandler(schema, input, async (data: any) => {
+    await requireAdmin();
     if (data.amount > 0) {
       return await SubscriptionService.addBonusCredits(data.userId, data.amount);
     } else {
@@ -87,6 +87,52 @@ export async function getPendingUpgradeRequestAction() {
   try {
     const existing = await SubscriptionRepository.getPendingUpgradeRequest(session.user.id);
     return { success: true, data: existing };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred";
+    return { success: false, error: message };
+  }
+}
+
+export async function selectPlanDuringOnboardingAction(planId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+  try {
+    const { PlanRepository } = await import("@/features/plans/repository");
+    const plan = await PlanRepository.getPlanById(planId);
+    if (!plan) return { success: false, error: "Plan not found" };
+
+    const plans = await PlanRepository.getAllPlans();
+    const freePlan = plans.find((p: any) => p.monthlyPrice === 0) || plan;
+
+    if (plan.monthlyPrice > 0) {
+      // Assign Free plan so they aren't blocked, and request upgrade
+      await SubscriptionService.assignOrUpdate({
+        userId: session.user.id,
+        planId: freePlan.id,
+        status: "ACTIVE",
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        extraCredits: 0,
+        isUnlimited: false,
+      });
+
+      const existing = await SubscriptionRepository.getPendingUpgradeRequest(session.user.id);
+      if (!existing) {
+        await SubscriptionRepository.createUpgradeRequest(session.user.id, plan.id);
+      }
+    } else {
+      // Directly assign Free plan
+      await SubscriptionService.assignOrUpdate({
+        userId: session.user.id,
+        planId: plan.id,
+        status: "ACTIVE",
+        currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        extraCredits: 0,
+        isUnlimited: false,
+      });
+    }
+
+    return { success: true };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "An unknown error occurred";
     return { success: false, error: message };

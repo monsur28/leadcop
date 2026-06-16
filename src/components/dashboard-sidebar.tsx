@@ -24,9 +24,11 @@ interface SidebarProps {
     email?: string | null;
     image?: string | null;
   };
+  className?: string;
+  onItemClick?: () => void;
 }
 
-export function DashboardSidebar({ user }: SidebarProps) {
+export function DashboardSidebar({ user, className, onItemClick }: SidebarProps) {
   const pathname = usePathname();
 
   const navItems = [
@@ -44,7 +46,10 @@ export function DashboardSidebar({ user }: SidebarProps) {
   ];
 
   return (
-    <aside className="w-64 border-r border-slate-200 bg-white flex flex-col h-screen sticky top-0">
+    <aside className={cn(
+      "w-64 border-r border-slate-200 bg-white flex-col h-screen shrink-0",
+      className || "hidden md:flex sticky top-0"
+    )}>
       {/* Branding */}
       <div className="h-16 px-6 border-b border-slate-100 flex items-center">
         <Link href="/dashboard" className="flex items-center gap-2.5 group">
@@ -71,6 +76,7 @@ export function DashboardSidebar({ user }: SidebarProps) {
                   ? "bg-orange-50 text-[#FF7A00]"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               )}
+              onClick={onItemClick}
             >
               <item.icon className={cn("w-4.5 h-4.5 shrink-0", isActive ? "text-[#FF7A00]" : "text-slate-400")} />
               {item.name}
@@ -94,6 +100,7 @@ export function DashboardSidebar({ user }: SidebarProps) {
                   ? "bg-orange-50 text-[#FF7A00]"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               )}
+              onClick={onItemClick}
             >
               <item.icon className="w-4.5 h-4.5 text-slate-400 shrink-0" />
               {item.name}

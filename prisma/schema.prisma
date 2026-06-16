@@ -101,15 +101,29 @@ model Plan {
   slug                String         @unique // Immutable identifier for business logic
   name                String         // Editable display name (e.g., "Starter Free")
   isActive            Boolean        @default(true) // Soft-disable plans without breaking active subs
+  
+  // Display & Marketing
+  showOnPricingPage   Boolean        @default(true)
+  sortOrder           Int            @default(0)
+  shortDescription    String?
+  badgeText           String?
+  isRecommended       Boolean        @default(false)
+
+  // Pricing
   monthlyPrice        Int
   yearlyPrice         Int
+  
+  // Limits
   quotaLimit          Int
+  rateLimitPerMinute  Int            @default(60)
   domainLimit         Int
+  bulkValidationLimit Int
+  teamSeats           Int
+  
+  // Feature Flags
   roleDetection       Boolean
   publicDetection     Boolean
   customBlocklist     Boolean
-  bulkValidationLimit Int
-  teamSeats           Int
 
   subscriptions       Subscription[]
 
@@ -126,9 +140,14 @@ model Subscription {
   status           SubscriptionStatus
   currentPeriodEnd DateTime
   
-  // Custom Overrides
-  extraCredits     Int                @default(0)
-  isUnlimited      Boolean            @default(false)
+  // Custom Overrides (These cascade over the Plan defaults when present)
+  extraCredits              Int       @default(0)
+  isUnlimited               Boolean   @default(false)
+  customQuotaLimit          Int?
+  customRateLimit           Int?
+  customDomainLimit         Int?
+  customBulkValidationLimit Int?
+  customTeamSeats           Int?
 
   user             User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan             Plan  @relation(fields: [planId], references: [id], onDelete: Restrict)
@@ -172,9 +191,6 @@ model Domain {
   userId            String
   hostname          String
   isActive          Boolean   @default(true)
-  isVerified        Boolean   @default(false)
-  verificationToken String?   @unique
-  verifiedAt        DateTime?
 
   user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   apiKeys           ApiKey[]

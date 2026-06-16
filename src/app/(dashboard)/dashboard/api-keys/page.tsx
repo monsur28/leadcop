@@ -27,7 +27,7 @@ import {
 interface Domain {
   id: string;
   hostname: string;
-  isVerified: boolean;
+
 }
 
 interface ApiKey {
@@ -63,7 +63,7 @@ export default function ApiKeysPage() {
     if (res.success && res.data && res.data.length > 0) {
       setDomains(res.data as Domain[]);
       // Automatically select first verified domain or first domain
-      const verified = (res.data as Domain[]).find((d) => d.isVerified);
+      const verified = (res.data as Domain[])[0]; // Just grab the first one instead of looking for isVerified
       const toSelect = verified ? verified.id : res.data[0].id;
       setSelectedDomainId(toSelect);
     }
@@ -161,7 +161,7 @@ export default function ApiKeysPage() {
             >
               {domains.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.hostname} {!d.isVerified && "(Unverified)"}
+                  {d.hostname}
                 </option>
               ))}
             </select>
@@ -172,7 +172,7 @@ export default function ApiKeysPage() {
                 setGeneratedKey(null);
                 setIsCreateOpen(true);
               }}
-              disabled={!activeDomain?.isVerified}
+              disabled={!activeDomain}
               className="bg-[#FF7A00] hover:bg-[#E66E00] text-white rounded-xl text-xs font-bold gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="w-4 h-4" /> Generate Key
@@ -194,20 +194,11 @@ export default function ApiKeysPage() {
           </div>
           <h3 className="text-sm font-bold text-slate-900 mb-1">Add a domain first</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto mb-6 leading-relaxed">
-            API keys must be bound to a specific domain hostname. Add and verify your domain under the Domains page before generating keys.
+            API keys must be bound to a specific domain hostname. Add your domain under the Domains page before generating keys.
           </p>
         </div>
       ) : (
         <>
-          {activeDomain && !activeDomain.isVerified && (
-            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-semibold flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>
-                <strong>{activeDomain.hostname}</strong> is not verified. You must verify ownership under the Domains tab before you can create keys or perform validation requests.
-              </span>
-            </div>
-          )}
-
           {keysLoading ? (
             <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center text-slate-400">
               <RotateCw className="w-6 h-6 mx-auto animate-spin mb-2 text-[#FF7A00]" />
@@ -299,7 +290,7 @@ export default function ApiKeysPage() {
                   setGeneratedKey(null);
                   setIsCreateOpen(true);
                 }}
-                disabled={!activeDomain?.isVerified}
+                disabled={!activeDomain}
                 className="bg-[#FF7A00] hover:bg-[#E66E00] text-white rounded-xl text-xs font-bold gap-1.5"
               >
                 <Plus className="w-4 h-4" /> Create API Key

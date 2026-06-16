@@ -38,7 +38,7 @@ interface UpgradeRequest {
 interface AdminStats {
   totalUsers: number;
   pendingUpgradesCount: number;
-  verifiedDomains: number;
+  totalDomains: number;
   activeApiKeys: number;
   pendingRequests: UpgradeRequest[];
 }
@@ -103,7 +103,7 @@ export default function AdminDashboardPage() {
   const cards = [
     { name: "Total Users", value: stats?.totalUsers || 0, change: "All registrations", icon: Users, color: "text-blue-600 bg-blue-50" },
     { name: "Pending Upgrades", value: stats?.pendingUpgradesCount || 0, change: "Requires review", icon: ArrowUpCircle, color: "text-orange-600 bg-orange-50" },
-    { name: "Verified Domains", value: stats?.verifiedDomains || 0, change: "Active whitelists", icon: Globe, color: "text-emerald-600 bg-emerald-50" },
+    { name: "Total Domains", value: stats?.totalDomains || 0, change: "Active instances", icon: Globe, color: "text-emerald-600 bg-emerald-50" },
     { name: "Active API Keys", value: stats?.activeApiKeys || 0, change: "Tokens in circulation", icon: Key, color: "text-indigo-600 bg-indigo-50" },
   ];
 

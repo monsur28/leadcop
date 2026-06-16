@@ -69,3 +69,5 @@ export class FeatureGateService {
     return limits.features[feature] === true;
   }
 }
+
+export * from "./FeatureAccessService";

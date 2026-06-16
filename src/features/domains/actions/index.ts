@@ -16,38 +16,32 @@ async function requireUser() {
 
 export async function addDomainAction(input: unknown) {
   const userId = await requireUser();
-  return withActionHandler(createDomainSchema, input, async (data) => {
+  return withActionHandler(createDomainSchema, input, async (data: any) => {
     return await DomainService.addDomain(userId, data);
   });
 }
 
 export async function updateDomainAction(input: unknown) {
   const userId = await requireUser();
-  return withActionHandler(updateDomainSchema, input, async (data) => {
+  return withActionHandler(updateDomainSchema, input, async (data: any) => {
     return await DomainService.updateDomain(userId, data);
   });
 }
 
 export async function deleteDomainAction(input: unknown) {
   const userId = await requireUser();
-  const schema = z.object({ domainId: z.string().uuid() });
-  return withActionHandler(schema, input, async (data) => {
+  const schema = z.object({ domainId: z.string() });
+  return withActionHandler(schema, input, async (data: any) => {
     return await DomainService.deleteDomain(userId, data.domainId);
   });
 }
 
-export async function verifyDomainAction(input: unknown) {
-  const userId = await requireUser();
-  const schema = z.object({ domainId: z.string().uuid() });
-  return withActionHandler(schema, input, async (data) => {
-    return await DomainService.verifyDomainOwnership(data.domainId, userId);
-  });
-}
+
 
 export async function toggleDomainAction(input: unknown) {
   const userId = await requireUser();
-  const schema = z.object({ domainId: z.string().uuid(), isActive: z.boolean() });
-  return withActionHandler(schema, input, async (data) => {
+  const schema = z.object({ domainId: z.string(), isActive: z.boolean() });
+  return withActionHandler(schema, input, async (data: any) => {
     return await DomainService.toggleDomainState(data.domainId, userId, data.isActive);
   });
 }

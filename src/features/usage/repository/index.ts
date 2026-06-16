@@ -17,7 +17,7 @@ export class UsageRepository {
     const month = new Date().getMonth() + 1; // 1-12
     const year = new Date().getFullYear();
 
-    return await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx: any) => {
       // 1. Fetch current subscription details within the transaction
       const sub = await tx.subscription.findUnique({
         where: { userId: params.userId },
@@ -90,7 +90,7 @@ export class UsageRepository {
       },
     });
 
-    return counts.map((c) => ({
+    return counts.map((c: any) => ({
       status: c.status,
       count: c._count._all,
     }));
@@ -171,10 +171,12 @@ export class UsageRepository {
       sub,
       counter,
       domainsCount,
-      verifiedDomainsCount,
       activeKeysCount,
       blockedCount,
-      recentLogs
+      recentLogs,
+      trends,
+      recentDomains,
+      recentKeys
     ] = await Promise.all([
       prisma.subscription.findUnique({
         where: { userId },
@@ -184,7 +186,6 @@ export class UsageRepository {
         where: { userId_month_year: { userId, month, year } },
       }),
       prisma.domain.count({ where: { userId } }),
-      prisma.domain.count({ where: { userId, isVerified: true } }),
       prisma.apiKey.count({
         where: { domain: { userId }, isActive: true },
       }),
@@ -194,19 +195,69 @@ export class UsageRepository {
       prisma.validationLog.findMany({
         where: { domain: { userId } },
         orderBy: { createdAt: "desc" },
-        take: 5,
+        take: 10,
         include: { domain: true },
       }),
+      this.getDailyTrends(userId, 90), // Fetch 90 days for the chart
+      prisma.domain.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+      prisma.apiKey.findMany({
+        where: { domain: { userId } },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: { domain: true },
+      })
     ]);
+
+    // Build unified activity timeline
+    const activityFeed: any[] = [];
+    
+    recentDomains.forEach((d: any) => {
+      activityFeed.push({
+        id: `dom_${d.id}`,
+        type: "DOMAIN_ADDED",
+        title: "Domain Added",
+        description: `${d.hostname} registered`,
+        date: d.createdAt,
+      });
+    });
+
+    recentKeys.forEach((k: any) => {
+      activityFeed.push({
+        id: `key_${k.id}`,
+        type: "KEY_CREATED",
+        title: "API Key Created",
+        description: `Key for ${k.domain.hostname}`,
+        date: k.createdAt,
+      });
+    });
+
+    recentLogs.forEach((l: any) => {
+      activityFeed.push({
+        id: `log_${l.id}`,
+        type: l.status === "VALID" ? "VALIDATION_PASSED" : "VALIDATION_BLOCKED",
+        title: l.status === "VALID" ? "Lead Validated" : "Lead Blocked",
+        description: `${l.validatedDomain} via ${l.domain.hostname}`,
+        date: l.createdAt,
+        status: l.status
+      });
+    });
+
+    // Sort descending by date and take the top 15
+    activityFeed.sort((a, b) => b.date.getTime() - a.date.getTime());
+    const timeline = activityFeed.slice(0, 15);
 
     return {
       subscription: sub,
       counter,
       domainsCount,
-      verifiedDomainsCount,
       activeKeysCount,
       blockedCount,
-      recentLogs,
+      timeline,
+      trends
     };
   }
 }

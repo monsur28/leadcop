@@ -24,7 +24,7 @@ interface SystemStats {
   totalPlans: number;
   activePlans: number;
   totalDomains: number;
-  verifiedDomains: number;
+
   totalApiKeys: number;
   activeApiKeys: number;
   totalBlogPosts: number;
@@ -88,10 +88,8 @@ export default function AdminSettingsPage() {
         },
         {
           icon: Globe,
-          label: "Domains",
+          label: "Registered Domains",
           value: stats.totalDomains,
-          secondaryLabel: "Verified",
-          secondaryValue: stats.verifiedDomains,
           color: "text-emerald-600",
           bgColor: "bg-emerald-50",
           borderColor: "border-emerald-100",

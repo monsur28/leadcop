@@ -7,7 +7,7 @@ import { ActionResponse } from "@/types";
  * Handles Zod validation, generic error catching, and standardizes the response object.
  */
 export async function withActionHandler<TOutput, TResponse>(
-  schema: z.ZodType<TOutput, z.ZodTypeDef, unknown>,
+  schema: any,
   input: unknown,
   handler: (validatedData: TOutput) => Promise<TResponse>
 ): Promise<ActionResponse<TResponse>> {

@@ -5,13 +5,13 @@ export class AdminRepository {
     const [
       totalUsers,
       pendingUpgradesCount,
-      verifiedDomains,
+      totalDomains,
       activeApiKeys,
       pendingRequests
     ] = await Promise.all([
       prisma.user.count(),
       prisma.upgradeRequest.count({ where: { status: "PENDING" } }),
-      prisma.domain.count({ where: { isVerified: true } }),
+      prisma.domain.count(),
       prisma.apiKey.count({ where: { isActive: true } }),
       prisma.upgradeRequest.findMany({
         where: { status: "PENDING" },
@@ -26,14 +26,14 @@ export class AdminRepository {
     return {
       totalUsers,
       pendingUpgradesCount,
-      verifiedDomains,
+      totalDomains,
       activeApiKeys,
       pendingRequests,
     };
   }
 
   static async resolveUpgradeRequest(requestId: string, status: "APPROVED" | "REJECTED") {
-    return await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx: any) => {
       const request = await tx.upgradeRequest.update({
         where: { id: requestId },
         data: { status },
@@ -241,7 +241,6 @@ export class AdminRepository {
       totalPlans,
       activePlans,
       totalDomains,
-      verifiedDomains,
       totalApiKeys,
       activeApiKeys,
       totalBlogPosts,
@@ -255,7 +254,7 @@ export class AdminRepository {
       prisma.plan.count(),
       prisma.plan.count({ where: { isActive: true } }),
       prisma.domain.count(),
-      prisma.domain.count({ where: { isVerified: true } }),
+
       prisma.apiKey.count(),
       prisma.apiKey.count({ where: { isActive: true } }),
       prisma.blogPost.count(),
@@ -271,7 +270,6 @@ export class AdminRepository {
       totalPlans,
       activePlans,
       totalDomains,
-      verifiedDomains,
       totalApiKeys,
       activeApiKeys,
       totalBlogPosts,

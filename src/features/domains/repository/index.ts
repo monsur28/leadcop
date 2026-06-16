@@ -1,26 +1,21 @@
 import { prisma } from "@/lib/db";
 
 export class DomainRepository {
-  static async createDomain(userId: string, hostname: string, verificationToken: string) {
+  static async createDomain(userId: string, hostname: string) {
     return await prisma.domain.create({
       data: {
         userId,
         hostname,
-        verificationToken,
-        isVerified: false,
         isActive: true,
       },
     });
   }
 
-  static async updateDomain(domainId: string, hostname: string, verificationToken: string) {
+  static async updateDomain(domainId: string, hostname: string) {
     return await prisma.domain.update({
       where: { id: domainId },
       data: {
         hostname,
-        verificationToken,
-        isVerified: false, // Changing hostname requires re-verification
-        verifiedAt: null,
       },
     });
   }
@@ -45,12 +40,7 @@ export class DomainRepository {
     return await prisma.domain.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
   }
 
-  static async verifyDomain(domainId: string) {
-    return await prisma.domain.update({
-      where: { id: domainId },
-      data: { isVerified: true, verifiedAt: new Date() },
-    });
-  }
+
 
   static async toggleActive(domainId: string, isActive: boolean) {
     return await prisma.domain.update({

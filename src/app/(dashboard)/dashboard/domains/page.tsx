@@ -5,7 +5,6 @@ import {
   addDomainAction, 
   deleteDomainAction, 
   toggleDomainAction, 
-  verifyDomainAction,
   getUserDomainsAction
 } from "@/features/domains/actions";
 import { cn } from "@/lib/utils";
@@ -29,9 +28,6 @@ interface Domain {
   id: string;
   hostname: string;
   isActive: boolean;
-  isVerified: boolean;
-  verificationToken: string | null;
-  verifiedAt: Date | null;
   createdAt: Date;
 }
 
@@ -39,11 +35,8 @@ export default function DomainsPage() {
   const [domains, setDomains] = React.useState<Domain[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isAddOpen, setIsAddOpen] = React.useState(false);
-  const [isVerifyOpen, setIsVerifyOpen] = React.useState(false);
   
   const [newHostname, setNewHostname] = React.useState("");
-  const [selectedDomain, setSelectedDomain] = React.useState<Domain | null>(null);
-  const [copiedToken, setCopiedToken] = React.useState(false);
   
   const [actionLoading, setActionLoading] = React.useState<string | null>(null);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
@@ -58,15 +51,11 @@ export default function DomainsPage() {
         id: string;
         hostname: string;
         isActive: boolean;
-        isVerified: boolean;
-        verificationToken: string | null;
-        verifiedAt: string | Date | null;
         createdAt: string | Date;
       }
       const parsed = (res.data as DBDomain[]).map((d) => ({
         ...d,
         createdAt: new Date(d.createdAt),
-        verifiedAt: d.verifiedAt ? new Date(d.verifiedAt) : null,
       }));
       setDomains(parsed);
     }
@@ -87,7 +76,7 @@ export default function DomainsPage() {
     if (res.success) {
       setNewHostname("");
       setIsAddOpen(false);
-      setSuccessMsg("Domain added successfully. Please verify ownership.");
+      setSuccessMsg("Domain added successfully.");
       await loadDomains();
     } else {
       setErrorMsg(res.error || "Failed to add domain.");
@@ -112,26 +101,6 @@ export default function DomainsPage() {
       await loadDomains();
     }
     setActionLoading(null);
-  };
-
-  const handleVerifyDomain = async (domainId: string) => {
-    setActionLoading("verify");
-    setErrorMsg(null);
-    const res = await verifyDomainAction({ domainId });
-    if (res.success) {
-      setSuccessMsg("Domain verified successfully!");
-      setIsVerifyOpen(false);
-      await loadDomains();
-    } else {
-      setErrorMsg(res.error || "Verification failed. Please check your DNS or meta tag settings.");
-    }
-    setActionLoading(null);
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedToken(true);
-    setTimeout(() => setCopiedToken(false), 2000);
   };
 
   return (
@@ -190,23 +159,9 @@ export default function DomainsPage() {
                   <td className="px-6 py-4 font-mono font-semibold text-slate-900">{domain.hostname}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      {domain.isVerified ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-bold text-[10px] uppercase">
-                          <CheckCircle className="w-3 h-3" /> Verified
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setSelectedDomain(domain);
-                            setErrorMsg(null);
-                            setSuccessMsg(null);
-                            setIsVerifyOpen(true);
-                          }}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100 hover:bg-amber-100/50 font-bold text-[10px] uppercase transition-colors"
-                        >
-                          <Clock className="w-3 h-3 animate-pulse" /> Verify
-                        </button>
-                      )}
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-bold text-[10px] uppercase">
+                        <CheckCircle className="w-3 h-3" /> Active
+                      </span>
                       {!domain.isActive && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold text-[10px] uppercase">
                           Disabled
@@ -253,7 +208,7 @@ export default function DomainsPage() {
           </div>
           <h3 className="text-sm font-bold text-slate-900 mb-1">No domains added yet</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto mb-6 leading-relaxed">
-            Add and verify your website domain hostname to whitelist it for form submission protection.
+            Add your website domain hostname to whitelist it for form submission protection.
           </p>
           <Button 
             onClick={() => {
@@ -298,80 +253,6 @@ export default function DomainsPage() {
             </Button>
           </div>
         </form>
-      </Dialog>
-
-      {/* Verification Instructions Dialog */}
-      <Dialog 
-        isOpen={isVerifyOpen} 
-        onClose={() => setIsVerifyOpen(false)} 
-        title={`Verify ${selectedDomain?.hostname || "Domain"}`}
-      >
-        {selectedDomain && (
-          <div className="space-y-5 pt-2 text-xs">
-            <p className="text-slate-600 leading-relaxed">
-              Add either the DNS TXT record or the HTML meta tag to verify that you own this website domain.
-            </p>
-
-            <div className="space-y-3">
-              <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[10px]">Method 1: DNS TXT Verification</h4>
-              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl space-y-2">
-                <div className="grid grid-cols-3 gap-2">
-                  <span className="font-semibold text-slate-500">Record Type</span>
-                  <span className="col-span-2 font-mono font-bold text-slate-900">TXT</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <span className="font-semibold text-slate-500">Host / Alias</span>
-                  <span className="col-span-2 font-mono font-bold text-slate-900">@</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 items-center">
-                  <span className="font-semibold text-slate-500">Value</span>
-                  <span className="col-span-2 font-mono font-bold text-slate-900 flex items-center justify-between gap-2 bg-white p-1.5 border border-slate-200 rounded-lg">
-                    <span className="truncate">leadcop-verification={selectedDomain.verificationToken}</span>
-                    <button 
-                      onClick={() => copyToClipboard(`leadcop-verification=${selectedDomain.verificationToken}`)}
-                      className="p-1 hover:bg-slate-50 rounded text-slate-400 hover:text-slate-600"
-                    >
-                      {copiedToken ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[10px]">Method 2: HTML Meta Tag Verification</h4>
-              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl space-y-2">
-                <p className="text-slate-500 leading-relaxed mb-1">Add this meta tag inside your homepage index.html &lt;head&gt; tag:</p>
-                <div className="font-mono font-bold text-slate-900 flex items-center justify-between gap-2 bg-white p-1.5 border border-slate-200 rounded-lg">
-                  <span className="truncate">{`<meta name="leadcop-verification" content="${selectedDomain.verificationToken}" />`}</span>
-                  <button 
-                    onClick={() => copyToClipboard(`<meta name="leadcop-verification" content="${selectedDomain.verificationToken}" />`)}
-                    className="p-1 hover:bg-slate-50 rounded text-slate-400 hover:text-slate-600"
-                  >
-                    {copiedToken ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setIsVerifyOpen(false)}
-                className="rounded-xl text-xs font-semibold"
-              >
-                Close
-              </Button>
-              <Button
-                onClick={() => handleVerifyDomain(selectedDomain.id)}
-                disabled={actionLoading === "verify"}
-                className="bg-[#FF7A00] hover:bg-[#E66E00] text-white rounded-xl text-xs font-bold"
-              >
-                {actionLoading === "verify" ? "Verifying..." : "Verify Domain"}
-              </Button>
-            </div>
-          </div>
-        )}
       </Dialog>
     </div>
   );
