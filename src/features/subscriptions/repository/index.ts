@@ -33,4 +33,26 @@ export class SubscriptionRepository {
       include: { plan: true },
     });
   }
+
+  static async createUpgradeRequest(userId: string, requestedPlanId: string) {
+    return await prisma.upgradeRequest.create({
+      data: {
+        userId,
+        requestedPlanId,
+        status: "PENDING",
+      },
+    });
+  }
+
+  static async getPendingUpgradeRequest(userId: string) {
+    return await prisma.upgradeRequest.findFirst({
+      where: {
+        userId,
+        status: "PENDING",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
 }

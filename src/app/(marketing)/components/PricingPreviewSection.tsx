@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 const plans = [
   {
     name: "Free",
-    description: "For Testing",
+    description: "Developer Sandbox",
     price: "$0",
     features: [
       "1,000 Validations / mo",
@@ -17,12 +17,12 @@ const plans = [
       "1 Domain Protected",
       "Community Support"
     ],
-    cta: "Start Free",
+    cta: "Claim Free Sandbox",
     popular: false,
   },
   {
     name: "Starter",
-    description: "For Small Businesses",
+    description: "For Growing Businesses",
     price: "$29",
     features: [
       "10,000 Validations / mo",
@@ -30,12 +30,12 @@ const plans = [
       "1 Domain Protected",
       "Email Support"
     ],
-    cta: "Start Starter Trial",
+    cta: "Start Free Trial",
     popular: false,
   },
   {
     name: "Growth",
-    description: "For Marketing Teams",
+    description: "Optimized for Marketing Teams",
     price: "$99",
     features: [
       "50,000 Validations / mo",
@@ -43,12 +43,12 @@ const plans = [
       "Unlimited Domains",
       "Priority Support"
     ],
-    cta: "Start Free Trial",
+    cta: "Unlock Growth Plan",
     popular: true,
   },
   {
     name: "Agency",
-    description: "For Multiple Websites",
+    description: "For Agencies & Enterprises",
     price: "$299",
     features: [
       "250,000 Validations / mo",
@@ -56,7 +56,7 @@ const plans = [
       "Team Management",
       "Dedicated Manager"
     ],
-    cta: "Contact Sales",
+    cta: "Get Custom Quote",
     popular: false,
   }
 ];
@@ -68,10 +68,10 @@ export function PricingPreviewSection() {
         
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl mb-4">
-            Simple, transparent pricing.
+            Scale Clean. Pay for Real Value Only.
           </h2>
           <p className="text-lg text-slate-600">
-            Pay only for the value you protect. Upgrade or downgrade at any time.
+            Choose the plan that matches your monthly signup volume. Stop wasting CRM budgets on spam and junk leads.
           </p>
         </div>
 

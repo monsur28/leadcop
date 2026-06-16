@@ -6,11 +6,11 @@ import { ActionResponse } from "@/types";
  * A wrapper foundation for Next.js Server Actions.
  * Handles Zod validation, generic error catching, and standardizes the response object.
  */
-export async function withActionHandler<TInput, TOutput>(
-  schema: z.ZodSchema<TInput>,
+export async function withActionHandler<TOutput, TResponse>(
+  schema: z.ZodType<TOutput, z.ZodTypeDef, unknown>,
   input: unknown,
-  handler: (validatedData: TInput) => Promise<TOutput>
-): Promise<ActionResponse<TOutput>> {
+  handler: (validatedData: TOutput) => Promise<TResponse>
+): Promise<ActionResponse<TResponse>> {
   try {
     const parsed = schema.safeParse(input);
     
@@ -24,7 +24,7 @@ export async function withActionHandler<TInput, TOutput>(
 
     const data = await handler(parsed.data);
     return { success: true, data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof AppError) {
       return { success: false, error: error.message };
     }

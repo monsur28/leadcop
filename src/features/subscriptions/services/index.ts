@@ -61,7 +61,10 @@ export class FeatureGateService {
   /**
    * Helper to quickly test if a specific feature boolean is active for the user's plan.
    */
-  static hasFeatureAccess(limits: any, feature: 'roleDetection' | 'publicDetection' | 'customBlocklist') {
+  static hasFeatureAccess(
+    limits: Awaited<ReturnType<typeof FeatureGateService.getAccessLimits>> | null,
+    feature: 'roleDetection' | 'publicDetection' | 'customBlocklist'
+  ) {
     if (!limits) return false;
     return limits.features[feature] === true;
   }

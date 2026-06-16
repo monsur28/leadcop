@@ -57,7 +57,7 @@ export async function getUserDomainsAction() {
     const userId = await requireUser();
     const domains = await DomainRepository.getUserDomains(userId);
     return { success: true, data: domains };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Unauthorized" };
   }
 }

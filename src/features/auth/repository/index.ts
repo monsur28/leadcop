@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db";
-import { RegisterInput } from "../schemas";
 
 export class AuthRepository {
   static async findUserByEmail(email: string) {
@@ -22,6 +21,19 @@ export class AuthRepository {
     return await prisma.user.update({
       where: { id: userId },
       data: { passwordHash },
+    });
+  }
+
+  static async findUserById(id: string) {
+    return await prisma.user.findUnique({
+      where: { id },
+    });
+  }
+
+  static async updateProfile(userId: string, data: { name: string; email: string; image?: string | null }) {
+    return await prisma.user.update({
+      where: { id: userId },
+      data,
     });
   }
 }

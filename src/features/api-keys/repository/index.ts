@@ -28,4 +28,17 @@ export class ApiKeyRepository {
       data: { isActive },
     });
   }
+
+  static async deleteKey(keyId: string) {
+    return await prisma.apiKey.delete({
+      where: { id: keyId },
+    });
+  }
+
+  static async getKeyWithDomain(keyId: string) {
+    return await prisma.apiKey.findUnique({
+      where: { id: keyId },
+      include: { domain: true },
+    });
+  }
 }

@@ -10,7 +10,7 @@ import { z } from "zod";
 
 async function requireAdmin() {
   const session = await auth();
-  if ((session?.user as any)?.globalRole !== "ADMIN") {
+  if (session?.user?.globalRole !== "ADMIN") {
     throw new UnauthorizedError("Admin access required");
   }
 }
@@ -42,7 +42,7 @@ export async function getPlansAction(includeInactive: boolean = false) {
   try {
     const plans = await PlanRepository.getAllPlans(includeInactive);
     return { success: true, data: plans };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Failed to fetch plans" };
   }
 }

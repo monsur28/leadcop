@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, ShieldCheck, Download, Settings, Zap } from "lucide-react";
+import { ShieldCheck, Download, Settings, Zap } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
