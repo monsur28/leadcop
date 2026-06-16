@@ -35,7 +35,7 @@ const stepContent: Record<number, { fileName: string; copyText: string; code: Re
   },
   2: {
     fileName: "api-key.json",
-    copyText: `lc_live_7b9a2c3d4e5f6g7h8i9j0k1l2m3n4o5p`,
+    copyText: `lc_live_pk_your_public_api_key`,
     code: (
       <>
         <span className="text-slate-500">{"// 2. Copy the generated domain-restricted API key"}</span>
@@ -46,7 +46,7 @@ const stepContent: Record<number, { fileName: string; copyText: string; code: Re
         <br />
         <span className="text-sky-300 ml-4">&quot;type&quot;:</span> <span className="text-green-300">&quot;PUBLIC&quot;</span>,
         <br />
-        <span className="text-sky-300 ml-4">&quot;apiKey&quot;:</span> <span className="text-green-300">&quot;lc_live_7b9a2c3d4e5f6g7h8i9j0k1l2m3n4o5p&quot;</span>
+        <span className="text-sky-300 ml-4">&quot;apiKey&quot;:</span> <span className="text-green-300">&quot;lc_live_pk_your_public_api_key&quot;</span>
         <br />
         <span className="text-pink-400">{"}"}</span>
       </>
@@ -54,7 +54,7 @@ const stepContent: Record<number, { fileName: string; copyText: string; code: Re
   },
   3: {
     fileName: "index.html",
-    copyText: `<script src="https://cdn.leadcop.io/leadcop.js" data-api-key="lc_live_7b9a2c3d4e5f6g7h8i9j0k1l2m3n4o5p"></script>`,
+    copyText: `<script src="https://cdn.leadcop.io/leadcop.js" data-api-key="lc_live_pk_your_public_api_key"></script>`,
     code: (
       <>
         <span className="text-slate-500">&lt;!-- 3. Drop snippet into your HTML &lt;head&gt; --&gt;</span>
@@ -63,7 +63,7 @@ const stepContent: Record<number, { fileName: string; copyText: string; code: Re
         <br />
         <span className="text-sky-300 ml-4">src=</span><span className="text-green-300">&quot;https://cdn.leadcop.io/leadcop.js&quot;</span>
         <br />
-        <span className="text-sky-300 ml-4">data-api-key=</span><span className="text-green-300">&quot;lc_live_7b9a2c3d4e5f6g7h8i9j0k1l2m3n4o5p&quot;</span><span className="text-pink-400">&gt;</span>
+        <span className="text-sky-300 ml-4">data-api-key=</span><span className="text-green-300">&quot;lc_live_pk_your_public_api_key&quot;</span><span className="text-pink-400">&gt;</span>
         <br />
         <span className="text-pink-400">&lt;/script&gt;</span>
       </>
