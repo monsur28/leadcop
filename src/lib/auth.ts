@@ -5,6 +5,7 @@ import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 import { loginSchema } from "@/features/auth/schemas";
+import { GlobalRole } from "@prisma/client";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -43,14 +44,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.globalRole = (user as any).globalRole || "USER";
+        token.globalRole = user.globalRole || "USER";
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string;
-        (session.user as any).globalRole = token.globalRole;
+        session.user.globalRole = (token.globalRole as GlobalRole) || "USER";
       }
       return session;
     },

@@ -52,7 +52,7 @@ export function FaqSection() {
           transition={{ duration: 0.5 }}
           className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm"
         >
-          <Accordion type="single" collapsible className="w-full">
+          <Accordion className="w-full">
             {faqs.map((faq, index) => (
               <AccordionItem key={index} value={`item-${index}`} className="border-slate-100">
                 <AccordionTrigger className="text-left text-lg font-semibold text-slate-800 hover:text-[#FF7A00] transition-colors py-6">

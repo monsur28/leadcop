@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db";
-import { RegisterInput } from "../schemas";
 
 export class AuthRepository {
   static async findUserByEmail(email: string) {

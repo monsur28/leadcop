@@ -9,7 +9,7 @@ import { z } from "zod";
 
 async function requireAdmin() {
   const session = await auth();
-  if ((session?.user as any)?.globalRole !== "ADMIN") {
+  if (session?.user?.globalRole !== "ADMIN") {
     throw new UnauthorizedError("Admin access required");
   }
 }
@@ -21,7 +21,7 @@ async function requireAdmin() {
 export async function assignSubscriptionAction(input: unknown) {
   await requireAdmin();
   return withActionHandler(assignSubscriptionSchema, input, async (data) => {
-    return await SubscriptionService.assignOrUpdate(data as any);
+    return await SubscriptionService.assignOrUpdate(data);
   });
 }
 
@@ -55,7 +55,7 @@ export async function getMyLimitsAction() {
   try {
     const limits = await FeatureGateService.getAccessLimits(session.user.id);
     return { success: true, data: limits };
-  } catch (error) {
+  } catch {
     return { success: false, error: "Failed to fetch access limits" };
   }
 }

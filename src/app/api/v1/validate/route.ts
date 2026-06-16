@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         validationResult.type,
         apiKey.id
       );
-    } catch (usageError: any) {
+    } catch (usageError: unknown) {
       if (usageError instanceof AppError && usageError.statusCode === 402) {
         return NextResponse.json({ error: usageError.message }, { status: 402 });
       }

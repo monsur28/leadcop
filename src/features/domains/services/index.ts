@@ -68,7 +68,7 @@ export class DomainService {
           break;
         }
       }
-    } catch (error) {
+    } catch {
       // Fallback to HTTP check
     }
 
@@ -85,7 +85,7 @@ export class DomainService {
             isVerified = true;
           }
         }
-      } catch (error) {
+      } catch {
         // HTTP failure
       }
     }

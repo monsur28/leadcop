@@ -45,8 +45,9 @@ export async function registerAction(data: RegisterInput) {
     });
 
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message || "Registration failed" };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Registration failed";
+    return { success: false, error: message };
   }
 }
 

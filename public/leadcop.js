@@ -130,7 +130,7 @@
         const isOk = this.processResult(result, state, input);
         state.isValid = isOk;
         return isOk;
-      } catch (err) {
+      } catch {
         // Fail-safe: Always allow submission if our API goes down. Never block the customer's leads.
         console.warn("[LeadCop] Validation API offline. Bypassing check.");
         state.isChecking = false;

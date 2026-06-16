@@ -16,8 +16,9 @@ export async function createApiKeyAction(data: CreateApiKeyInput) {
 
     const result = await ApiKeyService.createKey(session.user.id, parsed.data);
     return { success: true, data: result }; // Returns raw key once!
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred";
+    return { success: false, error: message };
   }
 }
 
