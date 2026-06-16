@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { assignSubscriptionSchema, updateSubscriptionSchema } from "../schemas";
 import { SubscriptionService, FeatureGateService } from "../services";
+import { SubscriptionRepository } from "../repository";
 import { withActionHandler } from "@/lib/action-handler";
 import { UnauthorizedError } from "@/lib/errors";
 import { z } from "zod";
@@ -57,5 +58,37 @@ export async function getMyLimitsAction() {
     return { success: true, data: limits };
   } catch {
     return { success: false, error: "Failed to fetch access limits" };
+  }
+}
+
+export async function createUpgradeRequestAction(planId: string) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+  try {
+    // Check if there is already a pending request
+    const existing = await SubscriptionRepository.getPendingUpgradeRequest(session.user.id);
+    if (existing) {
+      return { success: false, error: "You already have a pending upgrade request." };
+    }
+
+    const request = await SubscriptionRepository.createUpgradeRequest(session.user.id, planId);
+    return { success: true, data: request };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred";
+    return { success: false, error: message };
+  }
+}
+
+export async function getPendingUpgradeRequestAction() {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+  try {
+    const existing = await SubscriptionRepository.getPendingUpgradeRequest(session.user.id);
+    return { success: true, data: existing };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred";
+    return { success: false, error: message };
   }
 }

@@ -33,3 +33,39 @@ export async function getDomainApiKeysAction(domainId: string) {
   const keys = await ApiKeyRepository.getKeysByDomain(domainId);
   return { success: true, data: keys };
 }
+
+export async function toggleApiKeyAction(data: { keyId: string; isActive: boolean }) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+  try {
+    const key = await ApiKeyRepository.getKeyWithDomain(data.keyId);
+    if (!key || key.domain.userId !== session.user.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const updated = await ApiKeyRepository.toggleActive(data.keyId, data.isActive);
+    return { success: true, data: updated };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred";
+    return { success: false, error: message };
+  }
+}
+
+export async function deleteApiKeyAction(data: { keyId: string }) {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+
+  try {
+    const key = await ApiKeyRepository.getKeyWithDomain(data.keyId);
+    if (!key || key.domain.userId !== session.user.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    await ApiKeyRepository.deleteKey(data.keyId);
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred";
+    return { success: false, error: message };
+  }
+}

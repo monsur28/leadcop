@@ -76,4 +76,137 @@ export class UsageRepository {
       };
     });
   }
+
+  static async getValidationLogsBreakdown(userId: string) {
+    const counts = await prisma.validationLog.groupBy({
+      by: ["status"],
+      where: {
+        domain: {
+          userId,
+        },
+      },
+      _count: {
+        _all: true,
+      },
+    });
+
+    return counts.map((c) => ({
+      status: c.status,
+      count: c._count._all,
+    }));
+  }
+
+  static async getDailyTrends(userId: string, daysLimit: number = 30) {
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - daysLimit);
+
+    const logs = await prisma.validationLog.findMany({
+      where: {
+        domain: {
+          userId,
+        },
+        createdAt: {
+          gte: dateLimit,
+        },
+      },
+      select: {
+        status: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+    // Group logs by date (YYYY-MM-DD)
+    const trendsMap: Record<string, { total: number; blocked: number }> = {};
+    for (const log of logs) {
+      const dateStr = log.createdAt.toISOString().split("T")[0];
+      if (!trendsMap[dateStr]) {
+        trendsMap[dateStr] = { total: 0, blocked: 0 };
+      }
+      trendsMap[dateStr].total += 1;
+      if (log.status !== "VALID") {
+        trendsMap[dateStr].blocked += 1;
+      }
+    }
+
+    return Object.entries(trendsMap).map(([date, counts]) => ({
+      date,
+      ...counts,
+    }));
+  }
+
+  static async getUserUsageSummary(userId: string) {
+    const month = new Date().getMonth() + 1;
+    const year = new Date().getFullYear();
+
+    const [sub, counter, domainsCount, activeKeysCount] = await Promise.all([
+      prisma.subscription.findUnique({
+        where: { userId },
+        include: { plan: true },
+      }),
+      prisma.usageCounter.findUnique({
+        where: { userId_month_year: { userId, month, year } },
+      }),
+      prisma.domain.count({ where: { userId } }),
+      prisma.apiKey.count({
+        where: { domain: { userId }, isActive: true },
+      }),
+    ]);
+
+    return {
+      subscription: sub,
+      counter,
+      domainsCount,
+      activeKeysCount,
+    };
+  }
+
+  static async getDashboardOverviewData(userId: string) {
+    const month = new Date().getMonth() + 1;
+    const year = new Date().getFullYear();
+
+    const [
+      sub,
+      counter,
+      domainsCount,
+      verifiedDomainsCount,
+      activeKeysCount,
+      blockedCount,
+      recentLogs
+    ] = await Promise.all([
+      prisma.subscription.findUnique({
+        where: { userId },
+        include: { plan: true },
+      }),
+      prisma.usageCounter.findUnique({
+        where: { userId_month_year: { userId, month, year } },
+      }),
+      prisma.domain.count({ where: { userId } }),
+      prisma.domain.count({ where: { userId, isVerified: true } }),
+      prisma.apiKey.count({
+        where: { domain: { userId }, isActive: true },
+      }),
+      prisma.validationLog.count({
+        where: { domain: { userId }, status: { not: "VALID" } },
+      }),
+      prisma.validationLog.findMany({
+        where: { domain: { userId } },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        include: { domain: true },
+      }),
+    ]);
+
+    return {
+      subscription: sub,
+      counter,
+      domainsCount,
+      verifiedDomainsCount,
+      activeKeysCount,
+      blockedCount,
+      recentLogs,
+    };
+  }
 }

@@ -23,4 +23,17 @@ export class AuthRepository {
       data: { passwordHash },
     });
   }
+
+  static async findUserById(id: string) {
+    return await prisma.user.findUnique({
+      where: { id },
+    });
+  }
+
+  static async updateProfile(userId: string, data: { name: string; email: string; image?: string | null }) {
+    return await prisma.user.update({
+      where: { id: userId },
+      data,
+    });
+  }
 }
