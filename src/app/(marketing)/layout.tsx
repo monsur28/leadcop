@@ -7,37 +7,39 @@ import { ShieldCheck } from "lucide-react";
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-900">
-      {/* Global Navigation */}
-      <header className="sticky top-0 z-50 w-full border-b border-slate-100 bg-white/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-[#FF7A00] to-[#FF9F43] text-white shadow-md shadow-orange-500/10 group-hover:scale-105 transition-all duration-300">
-                <ShieldCheck className="h-5 w-5 stroke-[2.5]" />
-              </div>
-              <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-950 via-slate-800 to-[#FF7A00] bg-clip-text text-transparent">
-                LeadCop
-              </span>
-            </Link>
+      {/* Floating Island Global Navigation */}
+      <div className="sticky top-0 z-50 w-full px-4 sm:px-6 lg:px-8 pt-4">
+        <header className="mx-auto max-w-6xl rounded-full border border-slate-200/60 bg-white/75 backdrop-blur-xl shadow-md shadow-slate-100/40">
+          <div className="flex h-14 items-center justify-between px-6">
+            <div className="flex items-center gap-8">
+              <Link href="/" className="flex items-center gap-2.5 group">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-[#FF7A00] to-[#FF9F43] text-white shadow-sm shadow-orange-500/10 group-hover:scale-105 transition-all duration-300">
+                  <ShieldCheck className="h-4.5 w-4.5 stroke-[2.5]" />
+                </div>
+                <span className="text-lg font-bold tracking-tight text-slate-950">
+                  LeadCop
+                </span>
+              </Link>
+              
+              <nav className="hidden md:flex items-center gap-1 text-sm font-medium text-slate-600">
+                <Link href="#features" className="px-3.5 py-1.5 rounded-full hover:bg-slate-100/60 hover:text-slate-950 transition-all duration-200">Features</Link>
+                <Link href="#how-it-works" className="px-3.5 py-1.5 rounded-full hover:bg-slate-100/60 hover:text-slate-950 transition-all duration-200">How it Works</Link>
+                <Link href="#pricing" className="px-3.5 py-1.5 rounded-full hover:bg-slate-100/60 hover:text-slate-950 transition-all duration-200">Pricing</Link>
+                <Link href="/docs" className="px-3.5 py-1.5 rounded-full hover:bg-slate-100/60 hover:text-slate-950 transition-all duration-200">Documentation</Link>
+              </nav>
+            </div>
             
-            <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600">
-              <Link href="#features" className="hover:text-[#FF7A00] transition-colors">Features</Link>
-              <Link href="#how-it-works" className="hover:text-[#FF7A00] transition-colors">How it Works</Link>
-              <Link href="#pricing" className="hover:text-[#FF7A00] transition-colors">Pricing</Link>
-              <Link href="/docs" className="hover:text-[#FF7A00] transition-colors">Documentation</Link>
-            </nav>
+            <div className="flex items-center gap-4">
+              <Link href="/login" className="hidden sm:block text-sm font-medium text-slate-600 hover:text-slate-950 transition-colors">
+                Log in
+              </Link>
+              <Link href="/register" className={cn(buttonVariants(), "bg-slate-950 hover:bg-slate-900 text-white rounded-full px-5 py-2 text-sm font-semibold transition-all duration-200 hover:scale-[1.02] shadow-sm shadow-slate-950/10 border-none")}>
+                Start Free
+              </Link>
+            </div>
           </div>
-          
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="hidden sm:block text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
-              Log in
-            </Link>
-            <Link href="/register" className={cn(buttonVariants(), "bg-gradient-to-r from-[#FF7A00] to-[#FF9F43] hover:opacity-95 hover:shadow-md hover:shadow-orange-500/10 text-white rounded-full px-6 border-none font-semibold transition-all duration-300")}>
-              Start Free
-            </Link>
-          </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
       {/* Main Content (Sections injected here) */}
       <main className="flex-1">
