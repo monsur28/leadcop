@@ -24,15 +24,15 @@ export function HeroSection() {
           >
             <div className="inline-flex items-center rounded-full border border-[#FF7A00]/20 bg-[#FF7A00]/10 px-3 py-1 text-sm font-medium text-[#FF7A00] mb-6">
               <span className="flex h-2 w-2 rounded-full bg-[#FF7A00] mr-2"></span>
-              The Enterprise Lead Protection Platform
+              Real-Time Lead Quality Protection
             </div>
             
             <h1 className="text-5xl font-extrabold tracking-tight text-slate-900 sm:text-6xl mb-6">
-              Stop Bad Leads Before They Reach Your CRM.
+              Stop Paying for Fake Leads. Guard Your CRM.
             </h1>
             
             <p className="text-lg leading-8 text-slate-600 mb-8 max-w-xl">
-              Protect your funnels from disposable, fake, and role-based emails with one simple integration. Improve your sender reputation and stop wasting sales time.
+              Prevent invalid, disposable, and spam emails from skewing your marketing analytics. Protect domain reputation, eliminate bounce rates, and keep sales reps focused on real buyers.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4">
@@ -43,7 +43,7 @@ export function HeroSection() {
                   "bg-[#FF7A00] hover:bg-[#E66E00] text-white rounded-full px-8 h-14 text-base font-semibold shadow-lg shadow-[#FF7A00]/20 transition-all hover:scale-[1.02]"
                 )}
               >
-                Start Free <ArrowRight className="ml-2 h-4 w-4" />
+                Protect Your Forms Free <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
               <Link 
                 href="/demo" 
@@ -52,7 +52,7 @@ export function HeroSection() {
                   "rounded-full px-8 h-14 text-base border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold"
                 )}
               >
-                Book a Demo
+                Try Interactive Demo
               </Link>
             </div>
           </motion.div>

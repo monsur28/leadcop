@@ -11,23 +11,23 @@ import {
 const faqs = [
   {
     question: "How accurate is LeadCop?",
-    answer: "LeadCop analyzes over 24 global data points in under 400ms, cross-referencing known disposable domains, role-based prefixes, and active DNS records. Our accuracy rate is 99.9%."
+    answer: "LeadCop analyzes over 24 global data points in under 150ms, cross-referencing known disposable domains, role-based prefixes, active MX records, and domain syntax. Our validation accuracy rate is 99.9%."
   },
   {
-    question: "Does it work with WordPress?",
-    answer: "Yes! We have an official WordPress plugin that automatically binds to Contact Form 7, WPForms, Elementor Forms, and WooCommerce without writing any code."
+    question: "Will LeadCop slow down my website forms?",
+    answer: "Not at all. LeadCop runs asynchronously on distributed edge servers. Validation resolves in milliseconds in the background, ensuring zero latency or friction for real users submitting forms."
   },
   {
-    question: "Can I use it without coding?",
-    answer: "Absolutely. If you use WordPress, you just install the plugin. If you use a custom site, you just paste one line of JavaScript into your <head> tag. That's it."
+    question: "How does LeadCop handle typos?",
+    answer: "Instead of blocking users for innocent spelling errors, LeadCop detects common domain typos (like 'gmial.com' or 'yhaoo.com') and suggests corrections dynamically. This recovers up to 15% of lost leads."
   },
   {
-    question: "Does LeadCop store the emails?",
-    answer: "No. LeadCop processes the email strictly in memory for validation and immediately drops it. We only store anonymized logs (e.g., 'Validation blocked for domain X') to calculate your usage."
+    question: "Is LeadCop GDPR and data-privacy compliant?",
+    answer: "Yes, fully. LeadCop processes email addresses strictly in memory to perform validation and immediately discards them. We do not store, log, or sell any personal lead data."
   },
   {
     question: "How long does setup take?",
-    answer: "Less than 2 minutes. Create an account, add your domain, generate an API key, and paste the snippet. You'll be protected instantly."
+    answer: "Under 5 minutes. If you use WordPress, simply install our official plugin. For custom sites and SPAs, paste a single line of JavaScript into your HTML <head> tag to protect all forms instantly."
   }
 ];
 
