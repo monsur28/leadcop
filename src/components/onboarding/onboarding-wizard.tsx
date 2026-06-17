@@ -42,18 +42,16 @@ export function OnboardingWizard({ initialState }: OnboardingWizardProps) {
   const [domainId, setDomainId] = useState<string>("");
   const [hostname, setHostname] = useState<string>("");
   const [generatedKey, setGeneratedKey] = useState<string>(initialState.latestKeyHint || "");
-  // In a full implementation, the verificationToken could be fetched here or passed.
-  // For UX speed, we'll keep it simple and assume the user adds a domain and we track it.
-  const [verificationToken, setVerificationToken] = useState<string>("");
 
   const handlePlanSelected = () => {
     setCurrentStep(2);
     router.refresh();
   };
 
-  const handleDomainAdded = (id: string, name: string) => {
+  const handleDomainAdded = (id: string, name: string, key: string) => {
     setDomainId(id);
     setHostname(name);
+    setGeneratedKey(key);
     setCurrentStep(3); // Go straight to API Key step
     router.refresh();
   };
@@ -100,6 +98,7 @@ export function OnboardingWizard({ initialState }: OnboardingWizardProps) {
           {currentStep === 3 && (
             <StepGenerateKey 
               domainId={domainId} 
+              rawKey={generatedKey}
               onNext={handleKeyGenerated} 
             />
           )}

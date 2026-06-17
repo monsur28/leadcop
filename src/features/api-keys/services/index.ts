@@ -6,7 +6,7 @@ import crypto from "crypto";
 
 export class ApiKeyService {
   static async createKey(userId: string, input: CreateApiKeyInput) {
-    // 1. Verify domain belongs to user
+    // 1. Ensure domain belongs to user
     const domain = await DomainRepository.getDomainByIdAndUser(input.domainId, userId);
     if (!domain) throw new AppError("Domain not found or unauthorized", 403);
 

@@ -42,10 +42,13 @@ export async function POST(req: NextRequest) {
       keyHash = await hashSha256(apiKeyRaw);
       apiKey = await prisma.apiKey.findUnique({
         where: { keyHash },
-        include: { domain: true }
+        include: { domain: { include: { user: true } } }
       });
 
       if (apiKey && apiKey.isActive && apiKey.domain.isActive) {
+        if (apiKey.domain.user.status !== "ACTIVE") {
+           return NextResponse.json({ error: "Forbidden: Account is suspended" }, { status: 403 });
+        }
         const resolvedLimits = await FeatureAccessService.evaluate(apiKey.domain.userId, prisma);
         if (resolvedLimits) {
           accessLimits = resolvedLimits;
@@ -110,7 +113,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 6. Verify Domain Status
+    // 6. Ensure Domain Status
     if (!apiKey.domain.isActive) {
       return NextResponse.json({ error: "Forbidden: Domain is inactive" }, { status: 403 });
     }

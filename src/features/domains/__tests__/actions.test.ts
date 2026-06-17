@@ -25,9 +25,6 @@ describe('Domain Actions', () => {
         hostname: 'test.com',
         userId: 'user-1',
         isActive: true,
-        isVerified: false,
-        verificationToken: 'token',
-        verifiedAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };

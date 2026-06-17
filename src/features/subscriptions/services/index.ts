@@ -36,8 +36,29 @@ export class FeatureGateService {
    * Centralizes the logic so the Edge Validation Route relies solely on this method.
    */
   static async getAccessLimits(userId: string) {
-    const sub = await SubscriptionRepository.getSubscriptionByUserId(userId);
+    let sub = await SubscriptionRepository.getSubscriptionByUserId(userId);
     
+    // Auto-provision Free plan if the user has no subscription yet
+    if (!sub) {
+      const { prisma } = await import("@/lib/db");
+      const freePlan = await prisma.plan.findFirst({
+        where: { monthlyPrice: 0 }
+      }) || await prisma.plan.findFirst({
+        orderBy: { monthlyPrice: 'asc' }
+      });
+
+      if (freePlan) {
+        sub = await SubscriptionRepository.upsertSubscription({
+          userId,
+          planId: freePlan.id,
+          status: "ACTIVE",
+          currentPeriodEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 10)),
+          extraCredits: 0,
+          isUnlimited: false,
+        });
+      }
+    }
+
     // Deny access if no subscription, canceled, or past due
     if (!sub || sub.status !== "ACTIVE" || sub.currentPeriodEnd < new Date()) {
       return null; 

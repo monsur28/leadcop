@@ -55,3 +55,36 @@ export async function getUserDomainsAction() {
     return { success: false, error: "Unauthorized" };
   }
 }
+
+export async function getDomainDetailsAction(domainId: string) {
+  try {
+    const userId = await requireUser();
+    const details = await DomainService.getDomainDetails(userId, domainId);
+    return { success: true, data: details };
+  } catch (error: any) {
+    return { success: false, error: error.message || "An error occurred" };
+  }
+}
+
+export async function regenerateApiKeyAction(domainId: string) {
+  try {
+    const userId = await requireUser();
+    const result = await DomainService.regenerateApiKey(userId, domainId);
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message || "An error occurred" };
+  }
+}
+
+export async function getWebsiteDetailsPageDataAction(domainId: string) {
+  try {
+    const userId = await requireUser();
+    const [domainDetails, usageData] = await Promise.all([
+      DomainService.getDomainDetails(userId, domainId),
+      import("@/features/usage/repository").then(m => m.UsageRepository.getWebsiteDetailsUsageData(userId, domainId))
+    ]);
+    return { success: true, data: { ...domainDetails, ...usageData } };
+  } catch (error: any) {
+    return { success: false, error: error.message || "An error occurred" };
+  }
+}

@@ -19,11 +19,12 @@ export default async function DashboardLayout({
     name: session.user.name,
     email: session.user.email,
     image: session.user.image,
+    globalRole: session.user.globalRole,
   };
 
   return (
     <div className="flex h-screen bg-slate-50 font-sans antialiased overflow-hidden">
-      <DashboardSidebar user={userData} />
+      <DashboardSidebar user={userData as any} />
       <div className="flex-1 flex flex-col overflow-hidden w-full">
         <DashboardHeader user={userData} />
         <main className="flex-1 overflow-y-auto bg-slate-50/50 p-4 md:p-8">

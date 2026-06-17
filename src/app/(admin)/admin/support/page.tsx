@@ -27,7 +27,7 @@ const SUPPORT_CHANNELS = [
   {
     icon: BookOpen,
     title: "Knowledge Base",
-    description: "Self-serve documentation covering API integration, domain verification, and billing FAQs.",
+    description: "Self-serve documentation covering API integration and billing FAQs.",
     value: "docs.leadcop.co",
     action: "https://docs.leadcop.co",
     actionLabel: "Open Docs",

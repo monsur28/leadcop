@@ -176,7 +176,8 @@ export class UsageRepository {
       recentLogs,
       trends,
       recentDomains,
-      recentKeys
+      recentKeys,
+      totalValidationsCount
     ] = await Promise.all([
       prisma.subscription.findUnique({
         where: { userId },
@@ -209,46 +210,11 @@ export class UsageRepository {
         orderBy: { createdAt: "desc" },
         take: 5,
         include: { domain: true },
+      }),
+      prisma.validationLog.count({
+        where: { domain: { userId } }
       })
     ]);
-
-    // Build unified activity timeline
-    const activityFeed: any[] = [];
-    
-    recentDomains.forEach((d: any) => {
-      activityFeed.push({
-        id: `dom_${d.id}`,
-        type: "DOMAIN_ADDED",
-        title: "Domain Added",
-        description: `${d.hostname} registered`,
-        date: d.createdAt,
-      });
-    });
-
-    recentKeys.forEach((k: any) => {
-      activityFeed.push({
-        id: `key_${k.id}`,
-        type: "KEY_CREATED",
-        title: "API Key Created",
-        description: `Key for ${k.domain.hostname}`,
-        date: k.createdAt,
-      });
-    });
-
-    recentLogs.forEach((l: any) => {
-      activityFeed.push({
-        id: `log_${l.id}`,
-        type: l.status === "VALID" ? "VALIDATION_PASSED" : "VALIDATION_BLOCKED",
-        title: l.status === "VALID" ? "Lead Validated" : "Lead Blocked",
-        description: `${l.validatedDomain} via ${l.domain.hostname}`,
-        date: l.createdAt,
-        status: l.status
-      });
-    });
-
-    // Sort descending by date and take the top 15
-    activityFeed.sort((a, b) => b.date.getTime() - a.date.getTime());
-    const timeline = activityFeed.slice(0, 15);
 
     return {
       subscription: sub,
@@ -256,8 +222,45 @@ export class UsageRepository {
       domainsCount,
       activeKeysCount,
       blockedCount,
-      timeline,
-      trends
+      recentLogs, // return the raw validation logs for the new UI component
+      trends,
+      totalValidationsCount
+    };
+  }
+
+  static async getWebsiteDetailsUsageData(userId: string, domainId: string) {
+    const month = new Date().getMonth() + 1;
+    const year = new Date().getFullYear();
+
+    const [sub, counter, domainCount, recentLogs] = await Promise.all([
+      prisma.subscription.findUnique({
+        where: { userId },
+        include: { plan: true },
+      }),
+      prisma.usageCounter.findUnique({
+        where: { userId_month_year: { userId, month, year } },
+      }),
+      prisma.validationLog.count({
+        where: {
+          domainId,
+          createdAt: {
+            gte: new Date(year, month - 1, 1),
+          }
+        }
+      }),
+      prisma.validationLog.findMany({
+        where: { domainId },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { domain: true },
+      })
+    ]);
+
+    return {
+      subscription: sub,
+      counter,
+      domainValidationsThisMonth: domainCount,
+      recentLogs
     };
   }
 }

@@ -37,7 +37,32 @@ export class DomainRepository {
   }
 
   static async getUserDomains(userId: string) {
-    return await prisma.domain.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
+    const month = new Date().getMonth() + 1;
+    const year = new Date().getFullYear();
+    const startOfMonth = new Date(year, month - 1, 1);
+
+    return await prisma.domain.findMany({ 
+      where: { userId }, 
+      orderBy: { createdAt: "desc" },
+      include: {
+        apiKeys: {
+          take: 1, // Get the primary key
+          orderBy: { createdAt: "desc" },
+          select: { prefix: true }
+        },
+        _count: {
+          select: {
+            validationLogs: {
+              where: {
+                createdAt: {
+                  gte: startOfMonth
+                }
+              }
+            }
+          }
+        }
+      }
+    });
   }
 
 

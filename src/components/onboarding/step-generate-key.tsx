@@ -2,40 +2,16 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { createApiKeyAction } from "@/features/api-keys/actions";
-import { Key, Copy, Check, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Key, Copy, Check, ArrowRight, AlertCircle } from "lucide-react";
 
 interface StepGenerateKeyProps {
   domainId: string;
+  rawKey: string;
   onNext: (key: string) => void;
 }
 
-export function StepGenerateKey({ domainId, onNext }: StepGenerateKeyProps) {
-  const [keyName, setKeyName] = useState("Production Key");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [rawKey, setRawKey] = useState("");
+export function StepGenerateKey({ domainId, rawKey, onNext }: StepGenerateKeyProps) {
   const [copiedKey, setCopiedKey] = useState(false);
-
-  const handleGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const res = await createApiKeyAction({ name: keyName, domainId, type: "PUBLIC" });
-      if (res.success && res.data) {
-        setRawKey(res.data.rawKey);
-      } else {
-        setError(res.error || "Failed to generate API Key.");
-      }
-    } catch (err) {
-      setError("An unexpected error occurred.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const copyToClipboard = () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -68,76 +44,44 @@ export function StepGenerateKey({ domainId, onNext }: StepGenerateKeyProps) {
       </div>
       
       <div className="space-y-2 mb-8">
-        <h2 className="text-2xl font-bold text-slate-900">Generate API Key</h2>
+        <h2 className="text-2xl font-bold text-slate-900">Your API Key</h2>
         <p className="text-slate-500 text-sm">
-          Create a public API key for your verified domain. You'll need this key for the installation snippet.
+          We've automatically generated a public API key for your domain. You'll need this key for the installation snippet.
         </p>
       </div>
 
-      {!rawKey ? (
-        <form onSubmit={handleGenerate} className="w-full space-y-4">
-          <div className="space-y-1 text-left">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Key Name</label>
-            <Input 
-              placeholder="e.g. Production Key" 
-              value={keyName}
-              onChange={(e) => setKeyName(e.target.value)}
-              className="h-12 border-slate-200 focus:border-[#FF7A00] focus:ring-[#FF7A00]/20"
-              required
-              disabled={isLoading}
-            />
+      <div className="w-full space-y-6">
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3 text-left">
+          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-xs font-bold text-amber-900 mb-1">Save this key now!</h4>
+            <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
+              For security reasons, this is the only time we will show you the full API key. 
+              Please copy it and store it somewhere safe.
+            </p>
           </div>
-
-          {error && <p className="text-xs text-red-500 font-semibold">{error}</p>}
-
-          <Button 
-            type="submit" 
-            disabled={!keyName || isLoading}
-            className="w-full h-12 bg-[#FF7A00] hover:bg-[#E66E00] text-white font-bold rounded-xl transition-all shadow-sm shadow-[#FF7A00]/20"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Generating...
-              </>
-            ) : (
-              "Generate Key"
-            )}
-          </Button>
-        </form>
-      ) : (
-        <div className="w-full space-y-6">
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3 text-left">
-            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-xs font-bold text-amber-900 mb-1">Save this key now!</h4>
-              <p className="text-[10px] text-amber-700 font-medium leading-relaxed">
-                For security reasons, this is the only time we will show you the full API key. 
-                Please copy it and store it somewhere safe.
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-2 text-left">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Your Public Key</label>
-            <div className="font-mono font-bold text-slate-900 flex items-center justify-between gap-2 bg-slate-50 p-2 border border-slate-200 rounded-xl text-sm">
-              <span className="truncate px-2">{rawKey}</span>
-              <button 
-                onClick={copyToClipboard}
-                className="p-2 hover:bg-slate-200/50 rounded-lg text-slate-500 hover:text-slate-800 shrink-0 bg-white border border-slate-200 shadow-sm transition-colors"
-              >
-                {copiedKey ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          <Button 
-            onClick={() => onNext(rawKey)}
-            className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-all shadow-sm group"
-          >
-            Continue to Installation <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-          </Button>
         </div>
-      )}
+
+        <div className="space-y-2 text-left">
+          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Your Public Key</label>
+          <div className="font-mono font-bold text-slate-900 flex items-center justify-between gap-2 bg-slate-50 p-2 border border-slate-200 rounded-xl text-sm">
+            <span className="truncate px-2">{rawKey}</span>
+            <button 
+              onClick={copyToClipboard}
+              className="p-2 hover:bg-slate-200/50 rounded-lg text-slate-500 hover:text-slate-800 shrink-0 bg-white border border-slate-200 shadow-sm transition-colors"
+            >
+              {copiedKey ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <Button 
+          onClick={() => onNext(rawKey)}
+          className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-all shadow-sm group"
+        >
+          Continue to Installation <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+        </Button>
+      </div>
     </div>
   );
 }

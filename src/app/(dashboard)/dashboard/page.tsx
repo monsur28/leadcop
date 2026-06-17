@@ -1,10 +1,11 @@
+import { redirect } from "next/navigation";
 import { getDashboardOverviewAction } from "@/features/usage/actions";
 import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
 import { KPICards } from "@/components/dashboard/kpi-cards";
 import { ValidationChart } from "@/components/dashboard/validation-chart";
-import { OnboardingProgress } from "@/components/dashboard/onboarding-progress";
-import { ActivityTimeline } from "@/components/dashboard/activity-timeline";
+import { RecentValidations } from "@/components/dashboard/recent-validations";
 import { auth } from "@/lib/auth";
+import { PageHeader } from "@/components/layout/dashboard-shell";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -25,21 +26,30 @@ export default async function DashboardPage() {
     domainsCount,
     activeKeysCount,
     blockedCount,
-    timeline,
-    trends
+    recentLogs,
+    trends,
+    totalValidationsCount
   } = res.data;
+
+  // Progressive Onboarding Logic
+  const onboardingCompleted = domainsCount > 0 && activeKeysCount > 0;
+
+  if (!onboardingCompleted) {
+    redirect("/onboarding");
+  }
 
   const planName = subscription?.plan?.name || "Free Sandbox";
   const quotaLimit = subscription ? (subscription.plan.quotaLimit + subscription.extraCredits) : 1000;
   const isUnlimited = subscription?.isUnlimited || false;
   const validationsUsed = counter?.usedValidations || 0;
 
-  // Has onboarded means they have installed the script and started sending validations
-  const scriptInstalled = timeline.some((t: any) => t.type === 'VALIDATION_PASSED' || t.type === 'VALIDATION_BLOCKED');
-  const hasOnboarded = activeKeysCount > 0 && scriptInstalled;
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      <PageHeader 
+        title="Dashboard" 
+        description="Monitor your real-time validation traffic and blocked leads."
+      />
+
       <WelcomeBanner 
         userName={session.user.name || "User"}
         planName={planName}
@@ -53,7 +63,6 @@ export default async function DashboardPage() {
         quotaLimit={quotaLimit}
         isUnlimited={isUnlimited}
         domainsCount={domainsCount}
-        activeKeysCount={activeKeysCount}
         blockedCount={blockedCount}
       />
 
@@ -62,15 +71,8 @@ export default async function DashboardPage() {
           <ValidationChart data={trends} />
         </div>
         
-        <div className="flex flex-col gap-6 h-full">
-          {!hasOnboarded && (
-            <OnboardingProgress 
-              domainAdded={domainsCount > 0}
-              keyGenerated={activeKeysCount > 0}
-              scriptInstalled={scriptInstalled}
-            />
-          )}
-          <ActivityTimeline feed={timeline} />
+        <div className="flex flex-col h-full">
+          <RecentValidations logs={recentLogs} />
         </div>
       </div>
     </div>

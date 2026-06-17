@@ -11,6 +11,7 @@ interface HeaderProps {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+    globalRole?: string | null;
   };
 }
 
@@ -25,11 +26,8 @@ export function DashboardHeader({ user }: HeaderProps) {
 
   // Simple path to Title mapper
   const getPageDetails = () => {
-    if (pathname.includes("/domains")) {
-      return { title: "Domains", subtitle: "Register and verify your website domains." };
-    }
-    if (pathname.includes("/api-keys")) {
-      return { title: "API Keys", subtitle: "Generate and manage keys to secure your forms." };
+    if (pathname.includes("/websites")) {
+      return { title: "Websites", subtitle: "Register your website domains." };
     }
     if (pathname.includes("/usage")) {
       return { title: "Usage Analytics", subtitle: "Monitor your validation volume and statistics." };

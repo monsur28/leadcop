@@ -23,11 +23,7 @@ const stepContent: Record<number, { fileName: string; copyText: string; code: Re
         <br />
         <span className="text-sky-300 ml-4">&quot;hostname&quot;:</span> <span className="text-green-300">&quot;yourcompany.com&quot;</span>,
         <br />
-        <span className="text-sky-300 ml-4">&quot;isActive&quot;:</span> <span className="text-amber-300">true</span>,
-        <br />
-        <span className="text-sky-300 ml-4">&quot;isVerified&quot;:</span> <span className="text-amber-300">false</span>,
-        <br />
-        <span className="text-sky-300 ml-4">&quot;verificationToken&quot;:</span> <span className="text-green-300">&quot;leadcop-verification=7b9a2c...&quot;</span>
+        <span className="text-sky-300 ml-4">&quot;isActive&quot;:</span> <span className="text-amber-300">true</span>
         <br />
         <span className="text-pink-400">{"}"}</span>
       </>

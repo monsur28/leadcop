@@ -31,10 +31,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!user || !user.passwordHash) return null;
 
         const passwordsMatch = await bcrypt.compare(password, user.passwordHash);
-        if (passwordsMatch) return user;
+        if (passwordsMatch) {
+          if (user.status !== "ACTIVE") {
+            throw new Error("Account is suspended or deleted.");
+          }
+          return user;
+        }
 
         return null;
       },
     }),
   ],
+  callbacks: {
+    ...authConfig.callbacks,
+    async signIn({ user, account, profile }) {
+      if (user.id) {
+        const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+        if (dbUser && dbUser.status !== "ACTIVE") {
+          return false; // Block sign in
+        }
+      } else if (user.email) {
+        const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
+        if (dbUser && dbUser.status !== "ACTIVE") {
+          return false; // Block sign in
+        }
+      }
+      return true;
+    }
+  }
 });

@@ -9,8 +9,6 @@ interface DomainItem {
   userId: string;
   hostname: string;
   isActive: boolean;
-  isVerified: boolean;
-  verificationToken: string | null;
   createdAt: string;
   user: {
     name: string;
@@ -40,7 +38,7 @@ export default function AdminDomainsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-slate-900">System Domains</h2>
-          <p className="text-xs text-slate-500 font-medium">Audit registered client hostnames and verification tokens.</p>
+          <p className="text-xs text-slate-500 font-medium">Audit registered client hostnames.</p>
         </div>
         <Button 
           onClick={loadDomains}
@@ -64,7 +62,6 @@ export default function AdminDomainsPage() {
                 <th className="px-6 py-3">Hostname</th>
                 <th className="px-6 py-3">Owner Account</th>
                 <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Token</th>
                 <th className="px-6 py-3">Created On</th>
               </tr>
             </thead>
@@ -80,24 +77,16 @@ export default function AdminDomainsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      {item.isVerified ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-bold text-[10px] uppercase">
-                          <CheckCircle className="w-3.5 h-3.5" /> Verified
+                      {item.isActive ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-100 font-bold text-[10px] uppercase">
+                          Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100 font-bold text-[10px] uppercase">
-                          <Clock className="w-3.5 h-3.5 animate-pulse" /> Pending
-                        </span>
-                      )}
-                      {!item.isActive && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-bold text-[10px] uppercase">
                           Disabled
                         </span>
                       )}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-slate-400 font-semibold select-all">
-                    {item.verificationToken}
                   </td>
                   <td className="px-6 py-4 text-slate-500 font-medium">
                     {new Date(item.createdAt).toLocaleDateString()}

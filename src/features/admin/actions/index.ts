@@ -71,6 +71,90 @@ export async function updateUserRoleAction(data: { userId: string; role: "USER" 
   }
 }
 
+export async function getUserByIdAction(userId: string) {
+  try {
+    await requireAdmin();
+    const user = await AdminRepository.getUserById(userId);
+    return { success: true, data: user };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred";
+    return { success: false, error: message };
+  }
+}
+
+export async function updateUserStatusAction(data: { userId: string; status: "ACTIVE" | "SUSPENDED" | "DELETED" }) {
+  try {
+    await requireAdmin();
+    const schema = z.object({
+      userId: z.string().uuid(),
+      status: z.enum(["ACTIVE", "SUSPENDED", "DELETED"]),
+    });
+    const parsed = schema.safeParse(data);
+    if (!parsed.success) return { success: false, error: "Invalid input" };
+
+    let updated;
+    if (parsed.data.status === "ACTIVE") {
+      updated = await AdminRepository.reactivateUser(parsed.data.userId);
+    } else if (parsed.data.status === "SUSPENDED") {
+      updated = await AdminRepository.suspendUser(parsed.data.userId);
+    } else {
+      updated = await AdminRepository.deleteUser(parsed.data.userId);
+    }
+    
+    return { success: true, data: updated };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred";
+    return { success: false, error: message };
+  }
+}
+
+export async function adjustUserCreditsAction(data: { userId: string; amount: number; action: "GRANT" | "REMOVE" | "RESET" }) {
+  try {
+    await requireAdmin();
+    const schema = z.object({
+      userId: z.string().uuid(),
+      amount: z.number().int().nonnegative().optional(),
+      action: z.enum(["GRANT", "REMOVE", "RESET"]),
+    });
+    const parsed = schema.safeParse(data);
+    if (!parsed.success) return { success: false, error: "Invalid input" };
+
+    let updated;
+    if (parsed.data.action === "RESET") {
+      updated = await AdminRepository.resetCredits(parsed.data.userId);
+    } else if (parsed.data.action === "GRANT" && parsed.data.amount) {
+      updated = await AdminRepository.grantCredits(parsed.data.userId, parsed.data.amount);
+    } else if (parsed.data.action === "REMOVE" && parsed.data.amount) {
+      updated = await AdminRepository.removeCredits(parsed.data.userId, parsed.data.amount);
+    } else {
+      return { success: false, error: "Amount required for grant or remove" };
+    }
+    
+    return { success: true, data: updated };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred";
+    return { success: false, error: message };
+  }
+}
+
+export async function changeUserPlanAction(data: { userId: string; planId: string }) {
+  try {
+    await requireAdmin();
+    const schema = z.object({
+      userId: z.string().uuid(),
+      planId: z.string().uuid(),
+    });
+    const parsed = schema.safeParse(data);
+    if (!parsed.success) return { success: false, error: "Invalid input" };
+
+    const updated = await AdminRepository.changeUserPlan(parsed.data.userId, parsed.data.planId);
+    return { success: true, data: updated };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "An unknown error occurred";
+    return { success: false, error: message };
+  }
+}
+
 export async function getAdminSubscriptionsAction() {
   try {
     await requireAdmin();

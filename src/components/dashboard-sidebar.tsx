@@ -23,6 +23,7 @@ interface SidebarProps {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+    globalRole?: string | null;
   };
   className?: string;
   onItemClick?: () => void;
@@ -33,8 +34,7 @@ export function DashboardSidebar({ user, className, onItemClick }: SidebarProps)
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Domains", href: "/dashboard/domains", icon: Globe },
-    { name: "API Keys", href: "/dashboard/api-keys", icon: Key },
+    { name: "Websites", href: "/dashboard/websites", icon: Globe },
     { name: "Usage", href: "/dashboard/usage", icon: BarChart3 },
     { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -44,6 +44,10 @@ export function DashboardSidebar({ user, className, onItemClick }: SidebarProps)
     { name: "Support", href: "/support", icon: HelpCircle },
     { name: "Documentation", href: "/docs", icon: BookOpen },
   ];
+
+  if ((user as any).globalRole === "ADMIN") {
+    secondaryItems.unshift({ name: "Admin Panel", href: "/admin", icon: ShieldCheck });
+  }
 
   return (
     <aside className={cn(

@@ -7,7 +7,7 @@ import { addDomainAction } from "@/features/domains/actions";
 import { Globe, ArrowRight, Loader2 } from "lucide-react";
 
 interface StepAddDomainProps {
-  onNext: (domainId: string, hostname: string) => void;
+  onNext: (domainId: string, hostname: string, rawKey: string) => void;
 }
 
 export function StepAddDomain({ onNext }: StepAddDomainProps) {
@@ -23,7 +23,7 @@ export function StepAddDomain({ onNext }: StepAddDomainProps) {
     try {
       const res = await addDomainAction({ hostname });
       if (res.success && res.data) {
-        onNext(res.data.id, res.data.hostname);
+        onNext(res.data.domain.id, res.data.domain.hostname, res.data.rawKey);
       } else {
         setError(res.error || "Failed to add domain. Please try again.");
       }

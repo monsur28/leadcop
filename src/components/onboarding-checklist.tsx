@@ -26,14 +26,7 @@ export function OnboardingChecklist({ stepsState }: OnboardingProps) {
       href: "/dashboard/domains",
       actionLabel: "Add Domain",
     },
-    {
-      id: "verify-domain",
-      title: "Verify domain ownership",
-      description: "Add a TXT record or HTML Meta Tag to verify you own the domain.",
-      isComplete: stepsState.domainVerified,
-      href: "/dashboard/domains",
-      actionLabel: "Verify Domain",
-    },
+
     {
       id: "generate-key",
       title: "Generate a Public API Key",
@@ -50,6 +43,14 @@ export function OnboardingChecklist({ stepsState }: OnboardingProps) {
       href: "#",
       actionLabel: "View Snippet",
       isCustomAction: true,
+    },
+    {
+      id: "start-validation",
+      title: "Start Validation",
+      description: "Your domain is now active and protected. You will see metrics on your dashboard once requests come in.",
+      isComplete: stepsState.scriptInstalled, // Assuming this is complete when script is installed
+      href: "/dashboard",
+      actionLabel: "View Dashboard",
     },
   ];
 

@@ -1,230 +1,189 @@
-"use client";
-
 import * as React from "react";
-import { getAdminOverviewAction, resolveUpgradeRequestAction } from "@/features/admin/actions";
-import { getPlansAction } from "@/features/plans/actions";
-import { Button } from "@/components/ui/button";
+import { AdminRepository } from "@/features/admin/repository";
+import { PlanRepository } from "@/features/plans/repository";
 import { 
   Users, 
   Layers, 
   Globe, 
-  Key, 
-  ArrowUpCircle,
-  FileText,
-  RotateCw,
-  Check,
-  X,
-  AlertCircle
+  DollarSign,
+  Activity,
+  CreditCard,
+  Key,
+  ShieldCheck,
+  Server,
+  Zap,
+  Clock,
+  AlertTriangle,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
+import { AdminPendingRequestsClient } from "@/components/admin/admin-pending-requests-client";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { RevenueChart, GrowthChart, MetricBarChart, DistributionChart } from "@/components/system/charts";
+import { KpiCard, SectionCard } from "@/components/system/cards";
+import { PageHeader, DashboardShell, ContentContainer } from "@/components/layout/dashboard-shell";
+import { Timeline, TimelineItem } from "@/components/system/timeline";
+import { Icon } from "@/components/system/icons";
 
-interface Plan {
-  id: string;
-  name: string;
-}
-
-interface UpgradeRequest {
-  id: string;
-  userId: string;
-  requestedPlanId: string;
-  status: string;
-  createdAt: string;
-  user: {
-    name: string;
-    email: string;
-  };
-}
-
-interface AdminStats {
-  totalUsers: number;
-  pendingUpgradesCount: number;
-  totalDomains: number;
-  activeApiKeys: number;
-  pendingRequests: UpgradeRequest[];
-}
-
-export default function AdminDashboardPage() {
-  const [loading, setLoading] = React.useState(true);
-  const [stats, setStats] = React.useState<AdminStats | null>(null);
-  const [plans, setPlans] = React.useState<Plan[]>([]);
-  
-  const [actionLoading, setActionLoading] = React.useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = React.useState<string | null>(null);
-
-  const loadData = async () => {
-    setLoading(true);
-    const [overviewRes, plansRes] = await Promise.all([
-      getAdminOverviewAction(),
-      getPlansAction()
-    ]);
-
-    if (overviewRes.success && overviewRes.data) {
-      setStats(overviewRes.data as unknown as AdminStats);
-    }
-    if (plansRes.success && plansRes.data) {
-      setPlans(plansRes.data);
-    }
-    setLoading(false);
-  };
-
-  React.useEffect(() => {
-    loadData();
-  }, []);
-
-  const handleResolveRequest = async (requestId: string, status: "APPROVED" | "REJECTED") => {
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    setActionLoading(requestId);
-
-    const res = await resolveUpgradeRequestAction({ requestId, status });
-    if (res.success) {
-      setSuccessMsg(`Upgrade request successfully ${status.toLowerCase()}!`);
-      // Reload stats
-      const overviewRes = await getAdminOverviewAction();
-      if (overviewRes.success && overviewRes.data) {
-        setStats(overviewRes.data as unknown as AdminStats);
-      }
-    } else {
-      setErrorMsg(res.error || "Failed to process request.");
-    }
-    setActionLoading(null);
-  };
-
-  if (loading && !stats) {
-    return (
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-24 text-center text-slate-400">
-        <RotateCw className="w-8 h-8 mx-auto animate-spin mb-4 text-[#FF7A00]" />
-        <p className="text-xs font-semibold">Loading admin console...</p>
-      </div>
-    );
+export default async function AdminDashboardPage() {
+  const session = await auth();
+  if (session?.user?.globalRole !== "ADMIN") {
+    redirect("/dashboard");
   }
 
-  const cards = [
-    { name: "Total Users", value: stats?.totalUsers || 0, change: "All registrations", icon: Users, color: "text-blue-600 bg-blue-50" },
-    { name: "Pending Upgrades", value: stats?.pendingUpgradesCount || 0, change: "Requires review", icon: ArrowUpCircle, color: "text-orange-600 bg-orange-50" },
-    { name: "Total Domains", value: stats?.totalDomains || 0, change: "Active instances", icon: Globe, color: "text-emerald-600 bg-emerald-50" },
-    { name: "Active API Keys", value: stats?.activeApiKeys || 0, change: "Tokens in circulation", icon: Key, color: "text-indigo-600 bg-indigo-50" },
+  const [stats, plans] = await Promise.all([
+    AdminRepository.getOverviewStats(),
+    PlanRepository.getAllPlans()
+  ]);
+
+  const { kpis, charts, operations, health } = stats as any;
+
+  const kpiCards = [
+    { name: "Total Users", value: kpis.totalUsers, change: "Registered accounts", icon: <Icon icon={Users} sizeVariant="sm" />, color: "text-blue-600", bg: "bg-blue-50", trendValue: "+12%", trendDirection: "up" as const },
+    { name: "Active Subscriptions", value: kpis.activeSubscriptionsCount, change: "Paying users", icon: <Icon icon={CreditCard} sizeVariant="sm" />, color: "text-emerald-600", bg: "bg-emerald-50", trendValue: "+4%", trendDirection: "up" as const },
+    { name: "Monthly Revenue", value: `$${kpis.monthlyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "This month (MRR)", icon: <Icon icon={DollarSign} sizeVariant="sm" />, color: "text-purple-600", bg: "bg-purple-50", trendValue: "+18%", trendDirection: "up" as const },
+    { name: "Protected Websites", value: kpis.totalDomains, change: "Domains registered", icon: <Icon icon={Globe} sizeVariant="sm" />, color: "text-primary", bg: "bg-primary/10", trendValue: "+2%", trendDirection: "up" as const },
+    { name: "API Requests Today", value: kpis.apiRequestsToday.toLocaleString(), change: "Validations processed", icon: <Icon icon={Zap} sizeVariant="sm" />, color: "text-amber-600", bg: "bg-amber-50" },
+    { name: "Requests This Month", value: kpis.apiRequestsThisMonth.toLocaleString(), change: "Rolling 30 days", icon: <Icon icon={Activity} sizeVariant="sm" />, color: "text-indigo-600", bg: "bg-indigo-50" },
   ];
 
-  const pendingRequests = stats?.pendingRequests || [];
+  const getActivityIconProps = (type: string) => {
+    switch(type) {
+      case "USER_REGISTERED": return { icon: <Icon icon={Users} sizeVariant="sm" />, iconColorClass: "text-blue-600", iconBgClass: "bg-blue-50" };
+      case "WEBSITE_ADDED": return { icon: <Icon icon={Globe} sizeVariant="sm" />, iconColorClass: "text-primary", iconBgClass: "bg-primary/10" };
+      case "API_KEY_CREATED": return { icon: <Icon icon={Key} sizeVariant="sm" />, iconColorClass: "text-emerald-600", iconBgClass: "bg-emerald-50" };
+      case "SUBSCRIPTION_PURCHASED": return { icon: <Icon icon={CreditCard} sizeVariant="sm" />, iconColorClass: "text-purple-600", iconBgClass: "bg-purple-50" };
+      default: return { icon: <Icon icon={Activity} sizeVariant="sm" />, iconColorClass: "text-slate-600", iconBgClass: "bg-slate-100" };
+    }
+  };
+
+  const timelineItems: TimelineItem[] = operations.activityFeed.map((activity: any) => ({
+    id: activity.id,
+    title: activity.title,
+    description: activity.description,
+    time: new Date(activity.createdAt).toLocaleString(),
+    ...getActivityIconProps(activity.type)
+  }));
 
   return (
-    <div className="space-y-6">
-      {/* Header Panel */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Admin Console</h2>
-          <p className="text-xs text-slate-500 font-medium">Real-time statistics and summary logs of the LeadCop ecosystem.</p>
-        </div>
-        <Button 
-          onClick={loadData}
-          variant="outline"
-          className="rounded-xl text-xs font-semibold gap-1.5"
-        >
-          <RotateCw className="w-3.5 h-3.5" /> Refresh
-        </Button>
-      </div>
+    <DashboardShell>
+      <PageHeader 
+        title="Executive Dashboard" 
+        description="Real-time metrics, revenue, and system health."
+        variant="hero"
+      />
 
-      {/* Messages */}
-      {successMsg && (
-        <div className="p-3.5 bg-green-50 border border-green-200 text-green-700 rounded-xl text-xs font-semibold flex items-center gap-2">
-          <Check className="w-4 h-4 text-green-600 shrink-0" />
-          {successMsg}
-        </div>
-      )}
-      {errorMsg && (
-        <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-semibold flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-          {errorMsg}
-        </div>
-      )}
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {cards.map((stat, idx) => (
-          <div key={idx} className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{stat.name}</span>
-              <div className={`p-2 rounded-lg ${stat.color} shrink-0`}>
-                <stat.icon className="w-4.5 h-4.5" />
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 leading-none mb-1">{stat.value.toLocaleString()}</h3>
-              <p className="text-[11px] text-slate-500 font-medium">{stat.change}</p>
-            </div>
-          </div>
+      <ContentContainer overlapHero={true} className="space-y-8 pb-10">
+        {/* SECTION 1 - KPI ROW */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {kpiCards.map((stat, idx) => (
+          <KpiCard 
+            key={idx}
+            title={stat.name}
+            value={stat.value}
+            subtitle={stat.change}
+            icon={stat.icon}
+            iconColorClass={stat.color}
+            iconBgClass={stat.bg}
+            trendValue={stat.trendValue}
+            trendDirection={stat.trendDirection}
+          />
         ))}
       </div>
 
-      {/* Grid panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Pending Upgrade Approvals</h3>
-            
-            {pendingRequests.length > 0 ? (
-              <div className="divide-y divide-slate-100">
-                {pendingRequests.map((req) => {
-                  const planName = plans.find(p => p.id === req.requestedPlanId)?.name || "Premium Tier";
-                  return (
-                    <div key={req.id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs">
-                      <div>
-                        <div className="font-bold text-slate-900">{req.user.name}</div>
-                        <div className="text-slate-500">{req.user.email}</div>
-                        <div className="text-[10px] text-slate-400 font-semibold mt-1">
-                          Requested: <strong className="text-[#FF7A00]">{planName}</strong> • {new Date(req.createdAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Button
-                          onClick={() => handleResolveRequest(req.id, "APPROVED")}
-                          disabled={actionLoading === req.id}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-3 py-1 text-[11px] font-bold gap-1 shadow-sm h-7"
-                        >
-                          <Check className="w-3.5 h-3.5" /> Approve
-                        </Button>
-                        <Button
-                          onClick={() => handleResolveRequest(req.id, "REJECTED")}
-                          disabled={actionLoading === req.id}
-                          variant="destructive"
-                          className="rounded-lg px-3 py-1 text-[11px] font-bold gap-1 shadow-sm h-7"
-                        >
-                          <X className="w-3.5 h-3.5" /> Reject
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="py-12 text-center text-slate-400">
-                <ArrowUpCircle className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-500" />
-                <p className="text-xs font-semibold">All upgrade requests processed</p>
-                <p className="text-[10px] text-slate-500 mt-1">New requests from upgrade forms will appear here.</p>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* SECTION 2 - ANALYTICS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SectionCard title="Revenue Trend (30 Days)" icon={<DollarSign className="w-4 h-4 text-emerald-500" />}>
+          <RevenueChart data={charts.revenueTrend} />
+        </SectionCard>
+        
+        <SectionCard title="User Growth (30 Days)" icon={<Users className="w-4 h-4 text-blue-500" />}>
+          <GrowthChart data={charts.userGrowth} />
+        </SectionCard>
+      </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
-          <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Quick Links</h4>
-          <div className="grid grid-cols-1 gap-2 text-xs font-semibold">
-            <Link href="/admin/users" className="p-3 border border-slate-200 hover:border-orange-200 hover:bg-slate-50/50 rounded-xl flex items-center gap-2 transition-all text-slate-700">
-              <Users className="w-4 h-4 text-slate-400" /> Manage Users
-            </Link>
-            <Link href="/admin/plans" className="p-3 border border-slate-200 hover:border-orange-200 hover:bg-slate-50/50 rounded-xl flex items-center gap-2 transition-all text-slate-700">
-              <Layers className="w-4 h-4 text-slate-400" /> Pricing Tiers
-            </Link>
-            <Link href="/admin/blog" className="p-3 border border-slate-200 hover:border-orange-200 hover:bg-slate-50/50 rounded-xl flex items-center gap-2 transition-all text-slate-700">
-              <FileText className="w-4 h-4 text-slate-400" /> CMS & Blog
-            </Link>
+      {/* SECTION 3 - OPERATIONS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SectionCard title="Pending Upgrade Requests" icon={<Clock className="w-4 h-4 text-purple-500" />}>
+          <AdminPendingRequestsClient pendingRequests={operations.pendingRequests} plans={plans} />
+        </SectionCard>
+
+        <SectionCard title="Recent Activity Feed" icon={<Icon icon={Activity} sizeVariant="sm" className="text-primary" />}>
+          <Timeline items={timelineItems} />
+        </SectionCard>
+      </div>
+
+      {/* SECTION 4 - BUSINESS INSIGHTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <SectionCard title="Top Plans" icon={<Layers className="w-4 h-4 text-purple-500" />}>
+          <MetricBarChart data={charts.topPlans} dataKey="value" fill="#8b5cf6" valueLabel="Subscribers" />
+        </SectionCard>
+        <SectionCard title="Revenue By Plan" icon={<DollarSign className="w-4 h-4 text-[#FF7A00]" />}>
+          <MetricBarChart data={charts.revenueByPlan} dataKey="revenue" fill="#FF7A00" valueLabel="Revenue" isCurrency={true} />
+        </SectionCard>
+        <SectionCard title="Subscription Distribution" icon={<CreditCard className="w-4 h-4 text-indigo-500" />}>
+          <DistributionChart data={charts.topPlans} />
+        </SectionCard>
+      </div>
+
+      {/* SECTION 5 - SYSTEM HEALTH */}
+      <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl text-white">
+        <h3 className="text-sm font-bold text-white mb-6 flex items-center gap-2">
+          <Server className="w-4 h-4 text-emerald-400" /> System Health & API Metrics
+        </h3>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+            <div className="flex items-center gap-2 mb-2 text-slate-400">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-bold uppercase">API Status</span>
+            </div>
+            <div className="text-xl font-bold text-white flex items-center gap-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+              {health.apiStatus}
+            </div>
+          </div>
+
+          <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+            <div className="flex items-center gap-2 mb-2 text-slate-400">
+              <Clock className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-bold uppercase">Avg Response</span>
+            </div>
+            <div className="text-xl font-bold text-white">12ms</div>
+          </div>
+
+          <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+            <div className="flex items-center gap-2 mb-2 text-slate-400">
+              <AlertTriangle className="w-4 h-4 text-red-400" />
+              <span className="text-xs font-bold uppercase">Failed Requests</span>
+            </div>
+            <div className="text-xl font-bold text-white">0.01%</div>
+          </div>
+
+          <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+            <div className="flex items-center gap-2 mb-2 text-slate-400">
+              <Lock className="w-4 h-4 text-orange-400" />
+              <span className="text-xs font-bold uppercase">Rate Limited</span>
+            </div>
+            <div className="text-xl font-bold text-white">14 <span className="text-xs text-slate-500 font-normal">/hr</span></div>
+          </div>
+
+          <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+            <div className="flex items-center gap-2 mb-2 text-slate-400">
+              <Activity className="w-4 h-4 text-purple-400" />
+              <span className="text-xs font-bold uppercase">Success Rate</span>
+            </div>
+            <div className="text-xl font-bold text-white">{health.validationSuccessRate.toFixed(2)}%</div>
           </div>
         </div>
       </div>
-    </div>
+
+      </ContentContainer>
+    </DashboardShell>
   );
 }
 export const dynamic = "force-dynamic";

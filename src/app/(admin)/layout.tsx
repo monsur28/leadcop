@@ -29,8 +29,8 @@ export default async function AdminLayout({
       <AdminSidebar user={userData} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader />
-        <main className="flex-1 overflow-y-auto bg-slate-50/50 p-8">
-          <div className="max-w-6xl mx-auto space-y-8">
+        <main className="flex-1 overflow-y-auto bg-slate-50/50">
+          <div className="w-full">
             {children}
           </div>
         </main>
