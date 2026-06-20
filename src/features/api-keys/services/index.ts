@@ -3,12 +3,25 @@ import { CreateApiKeyInput } from "../schemas";
 import { DomainRepository } from "@/features/domains/repository";
 import { AppError } from "@/lib/errors";
 import crypto from "crypto";
+import { FeatureAccessService } from "@/features/subscriptions/services";
+import { prisma } from "@/lib/db";
 
 export class ApiKeyService {
   static async createKey(userId: string, input: CreateApiKeyInput) {
     // 1. Ensure domain belongs to user
     const domain = await DomainRepository.getDomainByIdAndUser(input.domainId, userId);
     if (!domain) throw new AppError("Domain not found or unauthorized", 403);
+
+    // 1.5 Enforce API Key Limit
+    const limits = await FeatureAccessService.evaluate(userId, prisma);
+    if (limits && limits.limits.apiKeys !== -1) {
+      const currentKeysCount = await prisma.apiKey.count({
+        where: { domain: { userId }, isActive: true }
+      });
+      if (currentKeysCount >= limits.limits.apiKeys) {
+        throw new AppError(`API Key limit of ${limits.limits.apiKeys} reached. Please upgrade your plan.`, 403);
+      }
+    }
 
     // 2. Generate Key
     const rawKey = crypto.randomBytes(32).toString("hex");

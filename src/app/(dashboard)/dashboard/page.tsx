@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation";
 import { getDashboardOverviewAction } from "@/features/usage/actions";
-import { WelcomeBanner } from "@/components/dashboard/welcome-banner";
-import { KPICards } from "@/components/dashboard/kpi-cards";
+import { DashboardHero } from "@/components/dashboard/hero-section";
+import { QuickActionsPanel } from "@/components/dashboard/quick-actions-panel";
 import { ValidationChart } from "@/components/dashboard/validation-chart";
 import { RecentValidations } from "@/components/dashboard/recent-validations";
 import { auth } from "@/lib/auth";
-import { PageHeader } from "@/components/layout/dashboard-shell";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -14,7 +13,7 @@ export default async function DashboardPage() {
   const res = await getDashboardOverviewAction();
   if (!res.success || !res.data) {
     return (
-      <div className="p-8 text-center text-red-500 font-semibold bg-red-50 border border-red-200 rounded-2xl">
+      <div className="p-6 text-center text-danger text-sm font-semibold bg-dangerGhost border border-danger/20 rounded-2xl">
         Failed to load dashboard overview. Please check your credentials and try again.
       </div>
     );
@@ -28,8 +27,10 @@ export default async function DashboardPage() {
     blockedCount,
     recentLogs,
     trends,
-    totalValidationsCount
-  } = res.data;
+    totalValidationsCount,
+    recentDomains,
+    recentKeys
+  } = res.data as any; // Type casting as we added it recently
 
   // Progressive Onboarding Logic
   const onboardingCompleted = domainsCount > 0 && activeKeysCount > 0;
@@ -40,39 +41,31 @@ export default async function DashboardPage() {
 
   const planName = subscription?.plan?.name || "Free Sandbox";
   const quotaLimit = subscription ? (subscription.plan.quotaLimit + subscription.extraCredits) : 1000;
-  const isUnlimited = subscription?.isUnlimited || false;
-  const validationsUsed = counter?.usedValidations || 0;
+  const validationsUsed = counter?.usedValidations ?? 0;
+
+  const activeDomainHostname = recentDomains?.[0]?.hostname || "Not configured";
+  const activeApiKey = recentKeys?.[0]?.prefix ? `${recentKeys[0].prefix}****************` : "Not configured";
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      <PageHeader 
-        title="Dashboard" 
-        description="Monitor your real-time validation traffic and blocked leads."
-      />
-
-      <WelcomeBanner 
-        userName={session.user.name || "User"}
+    <div className="space-y-6 pb-12 w-full">
+      <DashboardHero 
+        userName={session.user.name?.split(' ')[0] || "User"}
         planName={planName}
-        quotaLimit={quotaLimit}
-        validationsUsed={validationsUsed}
-        isUnlimited={isUnlimited}
-      />
-
-      <KPICards 
         validationsUsed={validationsUsed}
         quotaLimit={quotaLimit}
-        isUnlimited={isUnlimited}
-        domainsCount={domainsCount}
         blockedCount={blockedCount}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Data Column (Span 8) */}
+        <div className="lg:col-span-8 space-y-6">
           <ValidationChart data={trends} />
+          <RecentValidations logs={recentLogs} />
         </div>
         
-        <div className="flex flex-col h-full">
-          <RecentValidations logs={recentLogs} />
+        {/* Right Actions Column (Span 4) */}
+        <div className="lg:col-span-4 sticky top-6">
+          <QuickActionsPanel activeDomain={activeDomainHostname} apiKey={activeApiKey} />
         </div>
       </div>
     </div>

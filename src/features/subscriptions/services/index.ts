@@ -70,11 +70,14 @@ export class FeatureGateService {
       extraCredits: sub.extraCredits,
       quotaLimit: sub.plan.quotaLimit,
       domainLimit: sub.plan.domainLimit,
+      apiKeyLimit: sub.plan.apiKeyLimit,
+      rateLimitPerMinute: sub.plan.rateLimitPerMinute,
       features: {
         roleDetection: sub.plan.roleDetection,
         publicDetection: sub.plan.publicDetection,
         customBlocklist: sub.plan.customBlocklist,
-        bulkValidationLimit: sub.plan.bulkValidationLimit,
+        customGlobalMessages: sub.plan.customGlobalMessages,
+        customWebsiteMessages: sub.plan.customWebsiteMessages,
       }
     };
   }
@@ -82,10 +85,11 @@ export class FeatureGateService {
   /**
    * Helper to quickly test if a specific feature boolean is active for the user's plan.
    */
-  static hasFeatureAccess(
-    limits: Awaited<ReturnType<typeof FeatureGateService.getAccessLimits>> | null,
-    feature: 'roleDetection' | 'publicDetection' | 'customBlocklist'
-  ) {
+  static async hasFeature(
+    userId: string, 
+    feature: 'roleDetection' | 'publicDetection'
+  ): Promise<boolean> {
+    const limits = await this.getAccessLimits(userId);
     if (!limits) return false;
     return limits.features[feature] === true;
   }

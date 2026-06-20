@@ -58,7 +58,7 @@ export default function AdminSubscriptionsPage() {
     setSuccessMsg(null);
     setActionLoading(userId);
 
-    const credits = creditsInput[userId] || 0;
+    const credits = creditsInput[userId] ?? 0;
     const res = await updateExtraCreditsAction({ userId, extraCredits: Number(credits) });
 
     if (res.success) {
@@ -73,11 +73,7 @@ export default function AdminSubscriptionsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">User Subscriptions</h2>
-          <p className="text-xs text-slate-500 font-medium">Audit account subscriptions, override credits, and review current period states.</p>
-        </div>
-        <Button 
+<Button 
           onClick={loadSubscriptions}
           variant="outline"
           className="rounded-xl text-xs font-semibold gap-1.5"

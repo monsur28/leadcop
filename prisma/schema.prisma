@@ -73,6 +73,37 @@ enum NewsletterStatus {
   UNSUBSCRIBED
 }
 
+enum ValidationMessageType {
+  DISPOSABLE_EMAIL
+  ROLE_EMAIL
+  PUBLIC_EMAIL
+  INVALID_DOMAIN
+  QUOTA_EXCEEDED
+  RATE_LIMITED
+  SERVICE_OFFLINE
+  UNAUTHORIZED_DOMAIN
+  INVALID_API_KEY
+  API_KEY_REVOKED
+  ACCOUNT_SUSPENDED
+  SUBSCRIPTION_EXPIRED
+  DOMAIN_LIMIT_REACHED
+  API_KEY_LIMIT_REACHED
+  TYPO
+  INVALID_SYNTAX
+}
+
+enum SyncType {
+  DISPOSABLE
+  PUBLIC
+  TLD
+  ROLE
+}
+
+enum SyncStatus {
+  SUCCESS
+  FAILURE
+}
+
 // -----------------------------------------------------------------------------
 // MODELS
 // -----------------------------------------------------------------------------
@@ -82,9 +113,9 @@ model User {
   email            String     @unique
   name             String
   image            String?
-  passwordHash     String?
-  stripeCustomerId String?    @unique
-  globalRole       GlobalRole @default(USER)
+  passwordHash           String?
+  lemonSqueezyCustomerId String?    @unique
+  globalRole             GlobalRole @default(USER)
   status           UserStatus @default(ACTIVE)
 
   accounts         Account[]
@@ -93,21 +124,28 @@ model User {
   upgradeRequests  UpgradeRequest[]
   domains          Domain[]
   usageCounters    UsageCounter[]
-  customBlocklists CustomBlocklist[]
   cmsPages         CmsPage[]
   blogPosts        BlogPost[]
+  validationMsgs   ValidationMessage[]
+  websiteRules     WebsiteRoleRule[]
+  customRoles      CustomRoleAddress[]
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  @@index([stripeCustomerId])
+  @@index([lemonSqueezyCustomerId])
 }
 
 model Plan {
   id                  String         @id @default(uuid())
   slug                String         @unique // Immutable identifier for business logic
   name                String         // Editable display name (e.g., "Starter Free")
-  isActive            Boolean        @default(true) // Soft-disable plans without breaking active subs
+  isActive               Boolean        @default(true) // Soft-disable plans without breaking active subs
+  
+  // Lemon Squeezy Integration
+  lemonSqueezyProductId  String?
+  lemonMonthlyVariantId  String?        @unique
+  lemonYearlyVariantId   String?        @unique
   
   // Display & Marketing
   showOnPricingPage   Boolean        @default(true)
@@ -124,15 +162,19 @@ model Plan {
   quotaLimit          Int
   rateLimitPerMinute  Int            @default(60)
   domainLimit         Int
-  bulkValidationLimit Int
-  teamSeats           Int
+  apiKeyLimit         Int            @default(0)
   
   // Feature Flags
-  roleDetection       Boolean
-  publicDetection     Boolean
-  customBlocklist     Boolean
+  roleDetection           Boolean
+  allowRoleOverrides      Boolean        @default(false)
+  allowCustomRoles        Boolean        @default(false)
+  allowWebsiteLevelRoles  Boolean        @default(false)
+  publicDetection         Boolean
+  customBlocklist         Boolean        @default(false)
+  customGlobalMessages    Boolean        @default(false)
+  customWebsiteMessages   Boolean        @default(false)
 
-  subscriptions       Subscription[]
+  subscriptions         Subscription[]
 
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -143,9 +185,17 @@ model Plan {
 model Subscription {
   id               String             @id @default(uuid())
   userId           String             @unique
-  planId           String
-  status           SubscriptionStatus
-  currentPeriodEnd DateTime
+  planId                 String
+  status                 SubscriptionStatus
+  currentPeriodEnd       DateTime
+  
+  // Lemon Squeezy Integration
+  lemonSqueezyId         String?            @unique
+  variantId              String?
+  renewsAt               DateTime?
+  endsAt                 DateTime?
+  updatePaymentMethodUrl String?            @db.Text
+  customerPortalUrl      String?            @db.Text
   
   // Custom Overrides (These cascade over the Plan defaults when present)
   extraCredits              Int       @default(0)
@@ -153,8 +203,7 @@ model Subscription {
   customQuotaLimit          Int?
   customRateLimit           Int?
   customDomainLimit         Int?
-  customBulkValidationLimit Int?
-  customTeamSeats           Int?
+  customApiKeyLimit         Int?
 
   user             User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan             Plan  @relation(fields: [planId], references: [id], onDelete: Restrict)
@@ -172,6 +221,7 @@ model Payment {
   currency      String
   status        PaymentStatus
   providerTxId  String        @unique
+  invoiceUrl    String?       @db.Text
 
   user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -202,6 +252,9 @@ model Domain {
   user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   apiKeys           ApiKey[]
   validationLogs    ValidationLog[]
+  validationMsgs    ValidationMessage[]
+  websiteRules      WebsiteRoleRule[]
+  customRoles       CustomRoleAddress[]
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -263,20 +316,104 @@ model ValidationLog {
   @@index([apiKeyId])
 }
 
-model CustomBlocklist {
-  id        String          @id @default(uuid())
-  userId    String
-  value     String
-  type      BlocklistType
-  action    BlocklistAction
+model ValidationMessage {
+  id          String                @id @default(uuid())
+  userId      String
+  websiteId   String?               // Optional: If null, applies globally
+  messageType ValidationMessageType
+  message     String                @db.Text
+  isEnabled   Boolean               @default(true)
 
-  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  website     Domain?               @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@unique([userId, websiteId, messageType])
+}
+
+model DisposableDomain {
+  id        String   @id @default(uuid())
+  domain    String   @unique
+  isActive  Boolean  @default(true)
+  source    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  @@index([domain])
+}
 
-  @@unique([userId, type, value])
-  @@index([userId, value])
+model PublicEmailProvider {
+  id        String   @id @default(uuid())
+  domain    String   @unique
+  isActive  Boolean  @default(true)
+  source    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([domain])
+}
+
+model Tld {
+  id        String   @id @default(uuid())
+  tld       String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([tld])
+}
+
+model SyncLog {
+  id             String     @id @default(uuid())
+  type           SyncType
+  status         SyncStatus
+  recordsAdded   Int        @default(0)
+  recordsRemoved Int        @default(0)
+  errorMessage   String?    @db.Text
+  startedAt      DateTime   @default(now())
+  completedAt    DateTime?
+  
+  @@index([type, startedAt(sort: Desc)])
+}
+
+model RoleAddress {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isSystem  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  rules     WebsiteRoleRule[]
+
+  @@index([name])
+}
+
+model WebsiteRoleRule {
+  id            String   @id @default(uuid())
+  websiteId     String?  // Optional: If null, applies globally to User
+  userId        String
+  roleAddressId String
+  isBlocked     Boolean  @default(false) 
+  
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  website       Domain?     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  roleAddress   RoleAddress @relation(fields: [roleAddressId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, websiteId, roleAddressId])
+}
+
+model CustomRoleAddress {
+  id        String   @id @default(uuid())
+  userId    String
+  websiteId String?  
+  name      String
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  website   Domain?  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, websiteId, name])
 }
 
 model CmsPage {

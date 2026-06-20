@@ -33,42 +33,40 @@ export function ValidationChart({ data }: ValidationChartProps) {
   const hasData = filteredData.some(d => d.total > 0);
 
   return (
-    <SectionCard 
-      title="Validation Analytics" 
-      className="h-[400px]"
-      headerAction={
-        <div className="flex items-center bg-muted p-1 rounded-lg shrink-0">
+    <div className="bg-card rounded-2xl border border-borderSubtle shadow-sm overflow-hidden flex flex-col h-[360px]">
+      <div className="px-5 py-4 flex items-center justify-between border-b border-borderSubtle bg-card">
+        <h3 className="text-sm font-bold text-foreground">Validation Traffic</h3>
+        <div className="flex items-center bg-muted/50 p-0.5 rounded-lg shrink-0 border border-borderSubtle">
           {[7, 30, 90].map((days) => (
             <button
               key={days}
               onClick={() => setRange(days as 7|30|90)}
-              className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
+              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all ${
                 range === days 
-                  ? "bg-card text-foreground shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-card text-foreground shadow-sm border border-borderSubtle" 
+                  : "text-muted-foreground hover:text-foreground border border-transparent"
               }`}
             >
               {days}D
             </button>
           ))}
         </div>
-      }
-    >
-      <div className="flex-1 w-full h-full relative">
+      </div>
+      <div className="flex-1 w-full p-5 relative bg-card">
         {!hasData ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-            <div className="w-16 h-16 bg-white shadow-sm rounded-full flex items-center justify-center mb-4 border border-slate-100">
-              <Activity className="w-8 h-8 text-slate-300" />
+          <div className="absolute inset-4 flex flex-col items-center justify-center text-center bg-muted/30 rounded-xl border border-dashed border-borderSubtle">
+            <div className="w-12 h-12 bg-card shadow-sm rounded-full flex items-center justify-center mb-3 border border-borderSubtle">
+              <Activity className="w-5 h-5 text-muted-foreground" />
             </div>
-            <h4 className="text-sm font-bold text-slate-900 mb-2">Awaiting Your First Validation</h4>
-            <p className="text-xs text-slate-500 max-w-xs mb-6 leading-relaxed">
-              Install the LeadCop script on your website to start monitoring traffic and blocking disposable emails automatically.
+            <h4 className="text-xs font-bold text-foreground mb-1 uppercase tracking-widest">Awaiting Validations</h4>
+            <p className="text-[10px] text-muted-foreground max-w-xs mb-4 leading-relaxed">
+              Install the script on your website to start monitoring traffic.
             </p>
             <Link 
               href="/dashboard/websites"
-              className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center gap-2 bg-[#081225] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold hover:bg-[#0F172A] transition-colors uppercase tracking-widest"
             >
-              <Zap className="w-3.5 h-3.5 text-[#FF7A00]" /> Get Installation Code
+              <Zap className="w-3 h-3 text-primary" /> Setup Domain
             </Link>
           </div>
         ) : (
@@ -76,11 +74,11 @@ export function ValidationChart({ data }: ValidationChartProps) {
             <AreaChart data={filteredData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#FF7A00" stopOpacity={0.4}/>
+                  <stop offset="5%" stopColor="#FF7A00" stopOpacity={0.3}/>
                   <stop offset="95%" stopColor="#FF7A00" stopOpacity={0}/>
                 </linearGradient>
                 <linearGradient id="colorBlocked" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
                   <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                 </linearGradient>
               </defs>
@@ -88,7 +86,7 @@ export function ValidationChart({ data }: ValidationChartProps) {
                 dataKey="date" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fontSize: 10, fill: '#94a3b8' }} 
+                tick={{ fontSize: 10, fill: '#A3A3A3', fontWeight: 600 }} 
                 tickFormatter={(val) => {
                   const d = new Date(val);
                   return `${d.getMonth()+1}/${d.getDate()}`;
@@ -98,9 +96,9 @@ export function ValidationChart({ data }: ValidationChartProps) {
               <YAxis 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fontSize: 10, fill: '#94a3b8' }}
+                tick={{ fontSize: 10, fill: '#A3A3A3', fontWeight: 600 }}
               />
-              <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="4 4" />
+              <CartesianGrid vertical={false} stroke="#F0F0F0" strokeDasharray="3 3" />
               <Tooltip content={<CustomTooltip />} />
               <Area 
                 type="monotone" 
@@ -114,16 +112,16 @@ export function ValidationChart({ data }: ValidationChartProps) {
                 type="monotone" 
                 dataKey="total" 
                 stroke="#FF7A00" 
-                strokeWidth={3}
+                strokeWidth={2.5}
                 fillOpacity={1} 
                 fill="url(#colorTotal)" 
-                activeDot={{ r: 6, strokeWidth: 0, fill: '#FF7A00' }}
+                activeDot={{ r: 5, strokeWidth: 0, fill: '#FF7A00' }}
               />
             </AreaChart>
           </ResponsiveContainer>
         )}
       </div>
-    </SectionCard>
+    </div>
   );
 }
 

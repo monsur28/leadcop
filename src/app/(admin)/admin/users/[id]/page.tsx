@@ -44,9 +44,9 @@ export default async function AdminUserDetailsPage({ params }: { params: { id: s
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
   const usage = user.usageCounters?.find((u: any) => u.month === currentMonth && u.year === currentYear);
-  const usedValidations = usage?.usedValidations || 0;
-  const quotaLimit = user.subscription?.customQuotaLimit || user.subscription?.plan?.quotaLimit || 0;
-  const extraCredits = user.subscription?.extraCredits || 0;
+  const usedValidations = usage?.usedValidations ?? 0;
+  const quotaLimit = user.subscription?.customQuotaLimit ?? user.subscription?.plan?.quotaLimit;
+  const extraCredits = user.subscription?.extraCredits ?? 0;
 
   const allApiKeys = user.domains?.flatMap((d: any) => d.apiKeys || []) || [];
   const allValidationLogs = user.domains?.flatMap((d: any) => d.validationLogs || []).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 10) || [];
@@ -100,7 +100,7 @@ export default async function AdminUserDetailsPage({ params }: { params: { id: s
               <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Extra Credits</h3>
               <div className="flex justify-between items-end">
                 <div>
-                  <div className="text-xl font-bold text-[#FF7A00]">{extraCredits.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">{quotaLimit === -1 ? 'Unlimited' : (quotaLimit ?? "Unavailable")}</div>
                   <div className="text-xs text-slate-500 mt-1">Non-expiring validations</div>
                 </div>
               </div>

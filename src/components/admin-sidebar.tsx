@@ -17,7 +17,8 @@ import {
   ArrowUpCircle,
   FileText,
   Mail,
-  PenTool
+  PenTool,
+  Database
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOut } from "next-auth/react";
@@ -44,6 +45,7 @@ export function AdminSidebar({ user }: SidebarProps) {
     { name: "CMS Pages", href: "/admin/cms", icon: FileText },
     { name: "Newsletter", href: "/admin/newsletter", icon: Mail },
     { name: "Support Tickets", href: "/admin/support", icon: HelpCircle },
+    { name: "Domain Intelligence", href: "/admin/domain-intelligence", icon: Database },
     { name: "Admin Settings", href: "/admin/settings", icon: Settings },
   ];
 

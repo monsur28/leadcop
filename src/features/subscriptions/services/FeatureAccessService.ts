@@ -4,14 +4,15 @@ export type ResolvedLimits = {
   features: {
     roleDetection: boolean;
     publicDetection: boolean;
-    customBlocklist: boolean;
+    allowRoleOverrides?: boolean;
+    allowCustomRoles?: boolean;
+    allowWebsiteLevelRoles?: boolean;
   };
   limits: {
     quota: number;
     rateLimitPerMinute: number;
     domains: number;
-    teamSeats: number;
-    bulkValidation: number;
+    apiKeys: number;
   };
 };
 
@@ -25,14 +26,15 @@ export class FeatureAccessService {
       features: {
         roleDetection: false,
         publicDetection: false,
-        customBlocklist: false,
+        allowRoleOverrides: false,
+        allowCustomRoles: false,
+        allowWebsiteLevelRoles: false,
       },
       limits: {
         quota: 0,
         rateLimitPerMinute: 10, // 10 RPM for unauthenticated / unauthorized requests
         domains: 0,
-        teamSeats: 0,
-        bulkValidation: 0,
+        apiKeys: 0,
       },
     };
   }
@@ -64,14 +66,15 @@ export class FeatureAccessService {
       features: {
         roleDetection: plan.roleDetection,
         publicDetection: plan.publicDetection,
-        customBlocklist: plan.customBlocklist,
+        allowRoleOverrides: plan.allowRoleOverrides,
+        allowCustomRoles: plan.allowCustomRoles,
+        allowWebsiteLevelRoles: plan.allowWebsiteLevelRoles,
       },
       limits: {
         quota: FeatureAccessService.resolveLimit(subscription.customQuotaLimit, plan.quotaLimit),
         rateLimitPerMinute: FeatureAccessService.resolveLimit(subscription.customRateLimit, plan.rateLimitPerMinute),
         domains: FeatureAccessService.resolveLimit(subscription.customDomainLimit, plan.domainLimit),
-        teamSeats: FeatureAccessService.resolveLimit(subscription.customTeamSeats, plan.teamSeats),
-        bulkValidation: FeatureAccessService.resolveLimit(subscription.customBulkValidationLimit, plan.bulkValidationLimit),
+        apiKeys: FeatureAccessService.resolveLimit(subscription.customApiKeyLimit, plan.apiKeyLimit),
       },
     };
   }

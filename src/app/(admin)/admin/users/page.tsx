@@ -17,12 +17,7 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Manage Users</h2>
-          <p className="text-xs text-slate-500 font-medium">Audit and control user registration credentials and access permissions.</p>
-        </div>
-      </div>
+      
 
       {users.length > 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm">
@@ -43,14 +38,12 @@ export default async function AdminUsersPage() {
             <tbody className="divide-y divide-slate-100 text-xs">
               {users.map((item: any) => {
                 const planName = item.subscription?.plan?.name || "Free";
-                const websitesCount = item.domains?.length || 0;
-                const apiKeysCount = item.domains?.reduce((acc: number, d: any) => acc + (d.apiKeys?.length || 0), 0) || 0;
-                const currentMonth = new Date().getMonth() + 1;
-                const currentYear = new Date().getFullYear();
-                const usage = item.usageCounters?.find((u: any) => u.month === currentMonth && u.year === currentYear);
-                const usedValidations = usage?.usedValidations || 0;
-                const quotaLimit = item.subscription?.customQuotaLimit || item.subscription?.plan?.quotaLimit || 0;
-                const extraCredits = item.subscription?.extraCredits || 0;
+                const websitesCount = item.domains?.length ?? 0;
+                const apiKeysCount = item.domains?.reduce((acc: number, d: any) => acc + (d.apiKeys?.length ?? 0), 0) ?? 0;
+                const usage = item.usageCounters?.[0];
+                const usedValidations = usage?.usedValidations ?? 0;
+                const quotaLimit = item.subscription?.customQuotaLimit ?? item.subscription?.plan?.quotaLimit;
+                const extraCredits = item.subscription?.extraCredits ?? 0;
 
                 return (
                   <tr key={item.id} className="hover:bg-slate-50/20 transition-colors">
@@ -83,7 +76,7 @@ export default async function AdminUsersPage() {
                     <td className="px-6 py-4 font-medium text-slate-700">{websitesCount}</td>
                     <td className="px-6 py-4 font-medium text-slate-700">{apiKeysCount}</td>
                     <td className="px-6 py-4 font-medium text-slate-700">
-                      {usedValidations.toLocaleString()} <span className="text-slate-400">/ {quotaLimit.toLocaleString()}</span>
+                      {usedValidations.toLocaleString()} / {quotaLimit === -1 ? 'Unlimited' : (quotaLimit ?? "Unavailable")}
                     </td>
                     <td className="px-6 py-4 font-medium text-slate-700">{extraCredits.toLocaleString()}</td>
                     <td className="px-6 py-4 text-slate-500 font-medium">

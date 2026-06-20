@@ -9,11 +9,6 @@
   class LeadCopSDK {
     constructor() {
       this.apiKey = null;
-      this.config = {
-        allowPublic: false,
-        allowRole: false,
-        allowDisposable: false,
-      };
       this.inputs = new WeakMap(); // Tracks state per input to avoid memory leaks
       this.init();
     }
@@ -39,10 +34,7 @@
         return;
       }
 
-      // Parse Configuration Overrides
-      if (scriptTag.getAttribute("data-allow-public") === "true") this.config.allowPublic = true;
-      if (scriptTag.getAttribute("data-allow-role") === "true") this.config.allowRole = true;
-      if (scriptTag.getAttribute("data-allow-disposable") === "true") this.config.allowDisposable = true;
+
 
       // Attach to existing elements
       this.attachToExistingForms();
@@ -130,13 +122,11 @@
         const isOk = this.processResult(result, state, input);
         state.isValid = isOk;
         return isOk;
-      } catch {
-        // Fail-safe: Always allow submission if our API goes down. Never block the customer's leads.
-        console.warn("[LeadCop] Validation API offline. Bypassing check.");
+      } catch (err) {
         state.isChecking = false;
-        state.isValid = true;
-        this.clearError(state);
-        return true;
+        state.isValid = false;
+        this.showError(state, err.message || "Validation service unavailable.");
+        return false;
       }
     }
 
@@ -151,14 +141,29 @@
         },
         body: JSON.stringify({ email })
       });
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error(`API Error: ${response.status}`);
+      }
 
-      if (!response.ok) throw new Error(`API Error: ${response.status}`);
-      return await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || `API Error: ${response.status}`);
+      }
+      return data;
     }
 
     processResult(result, state, input) {
-      if (result.type === "TYPO" && result.suggestion) {
-        this.showError(state, `Did you mean <strong style="cursor:pointer; text-decoration:underline;" class="lc-suggestion">${result.suggestion}</strong>?`);
+      if (result.reason === "TYPO" && result.message) {
+        // The backend returns a pre-formatted message (e.g., "Did you mean %s?")
+        // where %s has already been substituted by the backend.
+        // We'll wrap the suggestion in a clickable span.
+        const msgHtml = result.message.replace(
+          result.suggestion, 
+          `<strong style="cursor:pointer; text-decoration:underline;" class="lc-suggestion">${result.suggestion}</strong>`
+        );
+        this.showError(state, msgHtml);
         
         // Bind suggestion click handler
         const suggestionEl = state.errorNode.querySelector('.lc-suggestion');
@@ -173,20 +178,7 @@
       }
 
       if (!result.valid) {
-        // Process client-side configuration overrides
-        if (result.type === "PUBLIC" && this.config.allowPublic) { this.clearError(state); return true; }
-        if (result.type === "ROLE" && this.config.allowRole) { this.clearError(state); return true; }
-        if (result.type === "DISPOSABLE" && this.config.allowDisposable) { this.clearError(state); return true; }
-
-        const msgs = {
-          "INVALID_SYNTAX": "Please enter a valid email address.",
-          "INVALID_TLD": "The domain ending is invalid.",
-          "DISPOSABLE": "Disposable email addresses are not allowed.",
-          "ROLE": "Please use a personal email instead of a role-based one.",
-          "PUBLIC": "Please use your business email address.",
-          "BLOCKLISTED": "This email address is blocked by the administrator."
-        };
-        this.showError(state, msgs[result.type] || "Invalid email address.");
+        this.showError(state, result.message);
         return false;
       }
 
@@ -207,8 +199,8 @@
     }
 
     showLoading(state) {
-      state.errorNode.innerHTML = "<span style='color:#6b7280;'>Verifying email...</span>";
-      state.errorNode.style.display = "block";
+      state.errorNode.innerHTML = "";
+      state.errorNode.style.display = "none";
     }
 
     async handleFormSubmit(e, form) {

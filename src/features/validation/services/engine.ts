@@ -1,4 +1,8 @@
 import { ValidationResponse, ValidationOptions } from "../types";
+import { Redis } from "@upstash/redis";
+import { FALLBACK_ROLES, FALLBACK_PUBLIC_PROVIDERS } from "@/constants/domain-intelligence";
+
+const redis = Redis.fromEnv();
 
 export class SyntaxService {
   static isValid(email: string): boolean {
@@ -8,55 +12,130 @@ export class SyntaxService {
 }
 
 export class TldValidationService {
-  static readonly COMMON_TLDS = new Set([
-    "com", "org", "net", "edu", "gov", "io", "co", "uk", "us", "de", 
-    "app", "dev", "ai", "tech", "info", "biz", "me", "tv", "ca", "au"
-  ]);
-
-  static isValid(domain: string): boolean {
+  static async isValid(domain: string): Promise<boolean> {
     const parts = domain.split('.');
     const tld = parts[parts.length - 1].toLowerCase();
     
-    // In Edge production, this queries a minimized JSON tree from the TLD-List repo.
-    // For MVP, if it matches common TLDs or is a standard 2-6 char TLD, it passes.
-    if (this.COMMON_TLDS.has(tld)) return true;
-    if (tld.length >= 2 && tld.length <= 6) return true;
+    // Quick length check for obvious invalid domains
+    if (tld.length < 2) return false;
+
+    // Check Redis dynamic list
+    try {
+      const isMember = await redis.sismember("domains:tld", tld);
+      if (isMember) return true;
+      
+      // Fallback: If Redis is completely empty (never synced), allow standard length TLDs to prevent blocking everything
+      const count = await redis.scard("domains:tld");
+      if (count === 0 && tld.length >= 2 && tld.length <= 6) return true;
+    } catch (err) {
+      // Failover: Never break validation if Redis is down
+      console.error("[TLD Failover]", err);
+      if (tld.length >= 2 && tld.length <= 6) return true;
+    }
+    
     return false;
   }
 }
 
 export class DisposableService {
-  // Mocked for MVP. In production, this proxies to a Redis SISMEMBER command 
-  // to evaluate against the 100k+ disposable domains repo instantly at the Edge.
-  static readonly MOCKS = new Set([
-    "mailinator.com", "10minutemail.com", "tempmail.com", "guerrillamail.com",
-    "sharklasers.com", "yopmail.com", "throwawaymail.com"
-  ]);
-
   static async isDisposable(domain: string): Promise<boolean> {
-    return this.MOCKS.has(domain.toLowerCase());
+    try {
+      return (await redis.sismember("domains:disposable", domain.toLowerCase())) === 1;
+    } catch (err) {
+      console.error("[Disposable Failover]", err);
+      return false; // Fail open
+    }
   }
 }
 
-export class RoleDetectionService {
-  static readonly ROLE_ACCOUNTS = new Set([
-    "admin", "info", "support", "sales", "billing", "hr", "contact",
-    "webmaster", "postmaster", "hostmaster", "abuse", "noc", "security"
-  ]);
+import { prisma } from "@/lib/db";
 
-  static isRoleAccount(localPart: string): boolean {
-    return this.ROLE_ACCOUNTS.has(localPart.toLowerCase());
+export class RoleDetectionService {
+  static async isRoleAccount(localPart: string, options: ValidationOptions): Promise<{ isRole: boolean; matchedRole: string | null }> {
+    const roleToMatch = localPart.toLowerCase();
+
+    // 1. Custom Roles Check
+    if (options.allowCustomRoles && options.userId) {
+      const customRole = await prisma.customRoleAddress.findFirst({
+        where: {
+          userId: options.userId,
+          name: roleToMatch,
+          ...(options.allowWebsiteLevelRoles && options.websiteId ? {
+            OR: [
+              { websiteId: options.websiteId },
+              { websiteId: null }
+            ]
+          } : {
+            websiteId: null
+          })
+        }
+      });
+      if (customRole) {
+        return { isRole: true, matchedRole: roleToMatch };
+      }
+    }
+
+    // 2. System Roles Check
+    let isSystemRole = false;
+    try {
+      isSystemRole = (await redis.sismember("domains:role", roleToMatch)) === 1;
+    } catch (err) {
+      // Failover list if Redis is down
+      const failoverRoles = new Set(FALLBACK_ROLES);
+      isSystemRole = failoverRoles.has(roleToMatch);
+    }
+
+    if (!isSystemRole) {
+      return { isRole: false, matchedRole: null };
+    }
+
+    // 3. System Role Allowlist Overrides Check
+    if (options.allowRoleOverrides && options.userId) {
+      const roleAddress = await prisma.roleAddress.findUnique({ where: { name: roleToMatch } });
+      if (roleAddress) {
+        const override = await prisma.websiteRoleRule.findFirst({
+          where: {
+            userId: options.userId,
+            roleAddressId: roleAddress.id,
+            ...(options.allowWebsiteLevelRoles && options.websiteId ? {
+              OR: [
+                { websiteId: options.websiteId },
+                { websiteId: null }
+              ]
+            } : {
+              websiteId: null
+            })
+          },
+          orderBy: { websiteId: 'asc' } // Prioritize website-level override if both exist
+        });
+
+        // If explicitly un-blocked (allowed)
+        if (override && override.isBlocked === false) {
+          return { isRole: false, matchedRole: null };
+        }
+      }
+    }
+
+    return { isRole: true, matchedRole: roleToMatch };
   }
 }
 
 export class PublicEmailService {
-  static readonly PUBLIC_PROVIDERS = new Set([
-    "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com",
-    "aol.com", "protonmail.com", "mail.com", "zoho.com", "yandex.com"
-  ]);
+  static async isPublicProvider(domain: string): Promise<boolean> {
+    try {
+      return (await redis.sismember("domains:public", domain.toLowerCase())) === 1;
+    } catch (err) {
+      console.error("[PublicEmail Failover]", err);
+      return false;
+    }
+  }
 
-  static isPublicProvider(domain: string): boolean {
-    return this.PUBLIC_PROVIDERS.has(domain.toLowerCase());
+  static async getProviders(): Promise<string[]> {
+    try {
+      return await redis.smembers("domains:public");
+    } catch (err) {
+      return FALLBACK_PUBLIC_PROVIDERS; // Emergency fallback
+    }
   }
 }
 
@@ -84,13 +163,15 @@ export class TypoDetectionService {
     return matrix[b.length][a.length];
   }
 
-  static detectTypo(domain: string): string | null {
-    if (PublicEmailService.isPublicProvider(domain)) return null;
+  static async detectTypo(domain: string): Promise<string | null> {
+    if (await PublicEmailService.isPublicProvider(domain)) return null;
 
     let closestMatch = null;
     let minDistance = 2; // Max distance for typo consideration
 
-    for (const provider of PublicEmailService.PUBLIC_PROVIDERS) {
+    const providers = await PublicEmailService.getProviders();
+
+    for (const provider of providers) {
       const distance = this.getLevenshteinDistance(domain, provider);
       if (distance <= minDistance && distance > 0) {
         minDistance = distance;
@@ -112,34 +193,46 @@ export class ValidationPipelineService {
 
       const [localPart, domain] = email.split('@').map(s => s.toLowerCase());
 
-      // Step 2: TLD Validation
-      if (!TldValidationService.isValid(domain)) {
-        return { valid: false, type: "INVALID_TLD", suggestion: null };
+      // Step 2: TLD Validation (Now Async)
+      if (!(await TldValidationService.isValid(domain))) {
+        return { valid: false, type: "INVALID_DOMAIN", suggestion: null };
       }
 
-      // Step 3: Disposable Detection (Async for Redis readiness)
+      // Step 3: Disposable Detection
       if (await DisposableService.isDisposable(domain)) {
-        return { valid: false, type: "DISPOSABLE", suggestion: null };
+        return { valid: false, type: "DISPOSABLE_EMAIL", suggestion: null };
       }
 
-      // Step 4: Role Detection (If enabled by plan)
-      if (options.checkRole && RoleDetectionService.isRoleAccount(localPart)) {
-        return { valid: false, type: "ROLE", suggestion: null };
+      let featureAvailable = true;
+
+      // Step 4: Role Detection
+      let roleMatched = null;
+      if (options.checkRole) {
+        const roleResult = await RoleDetectionService.isRoleAccount(localPart, options);
+        if (roleResult.isRole) {
+          return { valid: false, type: "ROLE_EMAIL", suggestion: null, role: roleResult.matchedRole || undefined, featureAvailable: true };
+        }
+      } else {
+        featureAvailable = false;
       }
 
-      // Step 5: Typo Detection
-      const typo = TypoDetectionService.detectTypo(domain);
+      // Step 5: Typo Detection (Now Async)
+      const typo = await TypoDetectionService.detectTypo(domain);
       if (typo) {
-        return { valid: true, type: "TYPO", suggestion: typo };
+        return { valid: true, type: "TYPO", suggestion: typo, featureAvailable };
       }
 
-      // Step 6: Public Detection (If enabled by plan)
-      if (options.checkPublic && PublicEmailService.isPublicProvider(domain)) {
-        return { valid: false, type: "PUBLIC", suggestion: null };
+      // Step 6: Public Detection
+      if (options.checkPublic) {
+        if (await PublicEmailService.isPublicProvider(domain)) {
+          return { valid: false, type: "PUBLIC_EMAIL", suggestion: null, featureAvailable: true };
+        }
+      } else {
+        featureAvailable = false;
       }
 
       // Passed all checks
-      return { valid: true, type: "VALID", suggestion: null };
+      return { valid: true, type: "VALID", suggestion: null, featureAvailable };
     } catch (error) {
       console.error("[Validation Pipeline Error]:", error);
       // Fail-safe gracefully, treat as valid to avoid blocking customer signups on internal failure

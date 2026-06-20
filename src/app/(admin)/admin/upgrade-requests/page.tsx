@@ -71,11 +71,7 @@ export default function AdminUpgradeRequestsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Upgrade Requests</h2>
-          <p className="text-xs text-slate-500 font-medium">Review, approve, or reject user subscription tier upgrade request forms.</p>
-        </div>
-        <Button 
+<Button 
           onClick={loadData}
           variant="outline"
           className="rounded-xl text-xs font-semibold gap-1.5"

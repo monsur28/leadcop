@@ -4,6 +4,8 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { FeatureAccessService } from "@/features/subscriptions/services";
 import { ValidationPipelineService } from "@/features/validation/services/engine";
+import { ValidationMessageService } from "@/features/validation/services/messages";
+import { ValidationMessageType } from "@prisma/client";
 import { UsageService } from "@/features/usage/services";
 import { prisma } from "@/lib/db";
 import { AppError } from "@/lib/errors";
@@ -47,7 +49,8 @@ export async function POST(req: NextRequest) {
 
       if (apiKey && apiKey.isActive && apiKey.domain.isActive) {
         if (apiKey.domain.user.status !== "ACTIVE") {
-           return NextResponse.json({ error: "Forbidden: Account is suspended" }, { status: 403 });
+           const msg = await ValidationMessageService.resolveMessage(apiKey.domain.userId, "ACCOUNT_SUSPENDED");
+           return NextResponse.json({ valid: false, reason: "ACCOUNT_SUSPENDED", message: msg }, { status: 403 });
         }
         const resolvedLimits = await FeatureAccessService.evaluate(apiKey.domain.userId, prisma);
         if (resolvedLimits) {
@@ -70,7 +73,9 @@ export async function POST(req: NextRequest) {
     
     if (!success) {
       logger.warn({ reqId, identifier: rateLimitIdentifier }, "Rate limit exceeded");
-      return new NextResponse(JSON.stringify({ error: "Too Many Requests: Rate limit exceeded." }), {
+      const userId = apiKey ? apiKey.domain.userId : "anonymous";
+      const msg = await ValidationMessageService.resolveMessage(userId, "RATE_LIMITED");
+      return new NextResponse(JSON.stringify({ valid: false, reason: "RATE_LIMITED", message: msg }), {
         status: 429,
         headers: {
           "Content-Type": "application/json",
@@ -93,12 +98,15 @@ export async function POST(req: NextRequest) {
     const { email } = parsed.data;
 
     if (!apiKeyRaw) {
-      return NextResponse.json({ error: "Unauthorized: Missing x-api-key header" }, { status: 401 });
+      return NextResponse.json({ valid: false, reason: "INVALID_API_KEY", message: "Missing x-api-key header" }, { status: 401 });
     }
     
     if (!apiKey || !apiKey.isActive) {
       logger.warn({ reqId, keyHash: keyHash?.substring(0, 8) }, "Invalid or inactive API Key attempted");
-      return NextResponse.json({ error: "Unauthorized: Invalid or inactive API Key" }, { status: 401 });
+      const userId = apiKey ? apiKey.domain.userId : "anonymous";
+      const reason = apiKey ? "API_KEY_REVOKED" : "INVALID_API_KEY";
+      const msg = await ValidationMessageService.resolveMessage(userId, reason);
+      return NextResponse.json({ valid: false, reason, message: msg }, { status: 401 });
     }
 
     // 5. Origin / Referer Validation (Security Check for Public Snippets)
@@ -109,27 +117,34 @@ export async function POST(req: NextRequest) {
       
       if (!cleanOrigin.includes(apiKey.domain.hostname.toLowerCase())) {
         logger.warn({ reqId, origin, expected: apiKey.domain.hostname }, "Origin mismatch for PUBLIC key");
-        return NextResponse.json({ error: "Forbidden: Origin does not match authorized API Key domain" }, { status: 403 });
+        const msg = await ValidationMessageService.resolveMessage(apiKey.domain.userId, "UNAUTHORIZED_DOMAIN");
+        return NextResponse.json({ valid: false, reason: "UNAUTHORIZED_DOMAIN", message: msg }, { status: 403 });
       }
     }
 
     // 6. Ensure Domain Status
     if (!apiKey.domain.isActive) {
-      return NextResponse.json({ error: "Forbidden: Domain is inactive" }, { status: 403 });
+      const msg = await ValidationMessageService.resolveMessage(apiKey.domain.userId, "UNAUTHORIZED_DOMAIN");
+      return NextResponse.json({ valid: false, reason: "UNAUTHORIZED_DOMAIN", message: msg }, { status: 403 });
     }
 
     // 7. Verify Subscription & Feature Access
     if (accessLimits.limits.quota <= 0 && accessLimits.limits.rateLimitPerMinute === 10) {
       // 10 RPM is our unauthenticated failsafe, implying they have no active plan limits
       logger.info({ reqId, userId: apiKey.domain.userId }, "Subscription exhausted or missing");
-      return NextResponse.json({ error: "Payment Required: Active subscription required" }, { status: 402 });
+      const msg = await ValidationMessageService.resolveMessage(apiKey.domain.userId, "SUBSCRIPTION_EXPIRED");
+      return NextResponse.json({ valid: false, reason: "SUBSCRIPTION_EXPIRED", message: msg }, { status: 402 });
     }
 
     // 8. Run Validation Engine (Pass dynamic toggles)
     const validationResult = await ValidationPipelineService.validateEmail(email, {
       checkRole: accessLimits.features.roleDetection,
       checkPublic: accessLimits.features.publicDetection,
-      checkCustomBlocklist: accessLimits.features.customBlocklist,
+      userId: apiKey.domain.userId,
+      websiteId: apiKey.domainId,
+      allowRoleOverrides: accessLimits.features.allowRoleOverrides,
+      allowCustomRoles: accessLimits.features.allowCustomRoles,
+      allowWebsiteLevelRoles: accessLimits.features.allowWebsiteLevelRoles,
     });
 
     // 9. Increment Usage & Create Log (Atomic DB Transaction)
@@ -144,21 +159,37 @@ export async function POST(req: NextRequest) {
     } catch (usageError: unknown) {
       if (usageError instanceof AppError && usageError.statusCode === 402) {
         logger.info({ reqId, userId: apiKey.domain.userId }, "Usage cap hit during validation");
-        return NextResponse.json({ error: usageError.message }, { status: 402 });
+        const msg = await ValidationMessageService.resolveMessage(apiKey.domain.userId, "QUOTA_EXCEEDED");
+        return NextResponse.json({ valid: false, reason: "QUOTA_EXCEEDED", message: msg }, { status: 402 });
       }
       logger.error({ reqId, err: usageError }, "Error tracking usage");
       throw usageError;
     }
 
     // 10. Return Output Response
+    let message: string | null = null;
+    let reason: ValidationMessageType | null = null;
+
+    if (!validationResult.valid || validationResult.type === "TYPO") {
+      reason = validationResult.type as ValidationMessageType;
+      message = await ValidationMessageService.resolveMessage(
+        apiKey.domain.userId,
+        reason,
+        apiKey.domainId,
+        validationResult.suggestion
+      );
+    }
+
     return NextResponse.json({
       valid: validationResult.valid,
-      type: validationResult.type,
-      suggestion: validationResult.suggestion
+      reason: validationResult.type === "VALID" ? null : validationResult.type,
+      role: validationResult.role || undefined,
+      message: message,
+      featureAvailable: validationResult.featureAvailable
     }, { status: 200 });
 
   } catch (error) {
     logger.error({ reqId, err: error }, "[API Validate Error]");
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ valid: false, reason: "SERVICE_OFFLINE", message: "Validation service unavailable." }, { status: 500 });
   }
 }

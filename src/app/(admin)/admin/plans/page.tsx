@@ -17,11 +17,14 @@ interface PlanItem {
   yearlyPrice: number;
   quotaLimit: number;
   domainLimit: number;
+  apiKeyLimit: number;
+  rateLimitPerMinute: number;
   roleDetection: boolean;
   publicDetection: boolean;
   customBlocklist: boolean;
-  bulkValidationLimit: number;
-  teamSeats: number;
+  lemonSqueezyProductId?: string | null;
+  lemonMonthlyVariantId?: string | null;
+  lemonYearlyVariantId?: string | null;
   createdAt: string;
 }
 
@@ -32,11 +35,14 @@ const EMPTY_FORM = {
   yearlyPrice: 0,
   quotaLimit: 0,
   domainLimit: 0,
+  apiKeyLimit: 0,
+  rateLimitPerMinute: 60,
   roleDetection: false,
   publicDetection: false,
   customBlocklist: false,
-  bulkValidationLimit: 0,
-  teamSeats: 1,
+  lemonSqueezyProductId: "",
+  lemonMonthlyVariantId: "",
+  lemonYearlyVariantId: "",
 };
 
 export default function AdminPlansPage() {
@@ -71,12 +77,12 @@ export default function AdminPlansPage() {
 
     const res = await createPlanAction({
       ...form,
-      monthlyPrice: Number(form.monthlyPrice),
-      yearlyPrice: Number(form.yearlyPrice),
+      monthlyPrice: Math.round(Number(form.monthlyPrice) * 100),
+      yearlyPrice: Math.round(Number(form.yearlyPrice) * 100),
       quotaLimit: Number(form.quotaLimit),
       domainLimit: Number(form.domainLimit),
-      bulkValidationLimit: Number(form.bulkValidationLimit),
-      teamSeats: Number(form.teamSeats),
+      apiKeyLimit: Number(form.apiKeyLimit),
+      rateLimitPerMinute: Number(form.rateLimitPerMinute),
     });
 
     if (res.success) {
@@ -99,12 +105,12 @@ export default function AdminPlansPage() {
     const res = await updatePlanAction({
       id: editingPlan.id,
       ...form,
-      monthlyPrice: Number(form.monthlyPrice),
-      yearlyPrice: Number(form.yearlyPrice),
+      monthlyPrice: Math.round(Number(form.monthlyPrice) * 100),
+      yearlyPrice: Math.round(Number(form.yearlyPrice) * 100),
       quotaLimit: Number(form.quotaLimit),
       domainLimit: Number(form.domainLimit),
-      bulkValidationLimit: Number(form.bulkValidationLimit),
-      teamSeats: Number(form.teamSeats),
+      apiKeyLimit: Number(form.apiKeyLimit),
+      rateLimitPerMinute: Number(form.rateLimitPerMinute),
     });
 
     if (res.success) {
@@ -138,75 +144,165 @@ export default function AdminPlansPage() {
     setForm({
       name: plan.name,
       slug: plan.slug,
-      monthlyPrice: plan.monthlyPrice,
-      yearlyPrice: plan.yearlyPrice,
+      monthlyPrice: plan.monthlyPrice / 100,
+      yearlyPrice: plan.yearlyPrice / 100,
       quotaLimit: plan.quotaLimit,
       domainLimit: plan.domainLimit,
+      apiKeyLimit: plan.apiKeyLimit,
+      rateLimitPerMinute: plan.rateLimitPerMinute,
       roleDetection: plan.roleDetection,
       publicDetection: plan.publicDetection,
       customBlocklist: plan.customBlocklist,
-      bulkValidationLimit: plan.bulkValidationLimit,
-      teamSeats: plan.teamSeats,
+      lemonSqueezyProductId: plan.lemonSqueezyProductId || "",
+      lemonMonthlyVariantId: plan.lemonMonthlyVariantId || "",
+      lemonYearlyVariantId: plan.lemonYearlyVariantId || "",
     });
   };
 
   const formFields = (isEdit: boolean) => (
-    <div className="space-y-4 pt-2">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-[11px] font-bold text-slate-600 block mb-1">Plan Name</label>
-          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Growth" className="h-9 rounded-lg text-sm" />
+    <div className="grid md:grid-cols-2 gap-8 pt-2">
+      <div className="space-y-6">
+        {/* Basic Info */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-bold text-slate-800 border-b pb-2">General & Pricing</h4>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">Plan Name</label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Growth" className="h-9 rounded-lg text-sm" />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">Slug {isEdit && <span className="text-slate-400">(read-only)</span>}</label>
+              <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="e.g. growth" disabled={isEdit} className="h-9 rounded-lg text-sm font-mono" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">Monthly Price ($)</label>
+              <Input type="number" step="0.01" min="0" value={form.monthlyPrice} onChange={(e) => setForm({ ...form, monthlyPrice: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">Yearly Price ($)</label>
+              <Input type="number" step="0.01" min="0" value={form.yearlyPrice} onChange={(e) => setForm({ ...form, yearlyPrice: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">LS Product ID</label>
+              <Input value={form.lemonSqueezyProductId || ""} onChange={(e) => setForm({ ...form, lemonSqueezyProductId: e.target.value })} placeholder="e.g. 12345" className="h-9 rounded-lg text-sm font-mono" />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">LS Monthly Variant</label>
+              <Input value={form.lemonMonthlyVariantId || ""} onChange={(e) => setForm({ ...form, lemonMonthlyVariantId: e.target.value })} placeholder="e.g. 54321" className="h-9 rounded-lg text-sm font-mono" />
+            </div>
+          </div>
         </div>
-        <div>
-          <label className="text-[11px] font-bold text-slate-600 block mb-1">Slug {isEdit && <span className="text-slate-400">(read-only)</span>}</label>
-          <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="e.g. growth" disabled={isEdit} className="h-9 rounded-lg text-sm font-mono" />
+
+        {/* Limits */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-bold text-slate-800 border-b pb-2">Resource Limits</h4>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">Monthly Quota (-1 for ∞)</label>
+              <Input type="number" min="-1" value={form.quotaLimit} onChange={(e) => setForm({ ...form, quotaLimit: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">Domain Limit (-1 for ∞)</label>
+              <Input type="number" min="-1" value={form.domainLimit} onChange={(e) => setForm({ ...form, domainLimit: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">API Key Limit (-1 for ∞)</label>
+              <Input type="number" min="-1" value={form.apiKeyLimit} onChange={(e) => setForm({ ...form, apiKeyLimit: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-600 block mb-1">Rate Limit (req/min)</label>
+              <Input type="number" min="-1" value={form.rateLimitPerMinute} onChange={(e) => setForm({ ...form, rateLimitPerMinute: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
+            </div>
+          </div>
+        </div>
+
+        {/* Feature Toggles */}
+        <div className="space-y-4">
+          <h4 className="text-sm font-bold text-slate-800 border-b pb-2">Enabled Features</h4>
+          <div className="grid grid-cols-1 gap-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            {(["roleDetection", "publicDetection"] as const).map((key) => (
+              <label key={key} className="flex items-center gap-3 cursor-pointer select-none p-2 hover:bg-white rounded-lg transition-colors border border-transparent hover:border-slate-200">
+                <input type="checkbox" checked={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-[#FF7A00] focus:ring-[#FF7A00]" />
+                <span className="text-xs font-semibold text-slate-700">{key === "roleDetection" ? "Role Detection Engine" : "Public Domain Detection"}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-4 border-t">
+          <Button variant="outline" onClick={() => { if (isEdit) { setEditingPlan(null); } else { setIsCreateOpen(false); } setForm(EMPTY_FORM); }} className="rounded-lg text-xs font-semibold">Cancel</Button>
+          <Button
+            onClick={isEdit ? handleUpdatePlan : handleCreatePlan}
+            disabled={actionLoading === (isEdit ? "update" : "create")}
+            className="bg-[#FF7A00] hover:bg-[#E56E00] text-white rounded-lg text-xs font-semibold"
+          >
+            {actionLoading === (isEdit ? "update" : "create") ? "Saving..." : isEdit ? "Save Changes" : "Create Plan"}
+          </Button>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-[11px] font-bold text-slate-600 block mb-1">Monthly Price (cents)</label>
-          <Input type="number" min="0" value={form.monthlyPrice} onChange={(e) => setForm({ ...form, monthlyPrice: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
+
+      {/* Live Preview Column */}
+      <div className="hidden md:block">
+        <h4 className="text-sm font-bold text-slate-800 mb-4 text-center">Live Preview</h4>
+        <div className="bg-white rounded-2xl border border-[#FF7A00] ring-1 ring-[#FF7A00] p-6 shadow-lg max-w-[280px] mx-auto flex flex-col h-full">
+          <div className="space-y-4 flex-1">
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-slate-800">{form.name || "Plan Name"}</h4>
+              <div className="flex items-baseline gap-0.5">
+                <span className="text-3xl font-black text-slate-900">${form.monthlyPrice || "0"}</span>
+                <span className="text-[10px] text-slate-400 font-semibold">/mo</span>
+              </div>
+            </div>
+            
+            <div className="space-y-2 border-t border-slate-100 pt-4 text-[11px] font-medium text-slate-600">
+              <div className="flex items-start gap-2">
+                <Check className="w-3.5 h-3.5 text-[#FF7A00] shrink-0 mt-0.5" />
+                <span>{form.quotaLimit === -1 ? "Unlimited" : (form.quotaLimit ?? "Unavailable")} monthly validations</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="w-3.5 h-3.5 text-[#FF7A00] shrink-0 mt-0.5" />
+                <span>{form.domainLimit === -1 ? "Unlimited" : (form.domainLimit ?? "Unavailable")} protected domains</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="w-3.5 h-3.5 text-[#FF7A00] shrink-0 mt-0.5" />
+                <span>{form.apiKeyLimit === -1 ? "Unlimited" : (form.apiKeyLimit ?? "Unavailable")} API Keys</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="w-3.5 h-3.5 text-[#FF7A00] shrink-0 mt-0.5" />
+                <span>{form.rateLimitPerMinute === -1 ? "Unlimited" : (form.rateLimitPerMinute ?? "Unavailable")} req/minute limit</span>
+              </div>
+              
+              {form.roleDetection && (
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-[#FF7A00] shrink-0 mt-0.5" />
+                  <span>Role account detection</span>
+                </div>
+              )}
+              {form.publicDetection && (
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-[#FF7A00] shrink-0 mt-0.5" />
+                  <span>Public provider detection</span>
+                </div>
+              )}
+              {form.customBlocklist && (
+                <div className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-[#FF7A00] shrink-0 mt-0.5" />
+                  <span>Custom blocklists allowed</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="pt-6 mt-auto">
+            <Button className="w-full bg-[#FF7A00] hover:bg-[#FF7A00] text-white rounded-xl text-xs font-bold pointer-events-none">
+              Select Plan
+            </Button>
+          </div>
         </div>
-        <div>
-          <label className="text-[11px] font-bold text-slate-600 block mb-1">Yearly Price (cents)</label>
-          <Input type="number" min="0" value={form.yearlyPrice} onChange={(e) => setForm({ ...form, yearlyPrice: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
-        </div>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <label className="text-[11px] font-bold text-slate-600 block mb-1">Quota Limit</label>
-          <Input type="number" min="-1" value={form.quotaLimit} onChange={(e) => setForm({ ...form, quotaLimit: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
-        </div>
-        <div>
-          <label className="text-[11px] font-bold text-slate-600 block mb-1">Domain Limit</label>
-          <Input type="number" min="-1" value={form.domainLimit} onChange={(e) => setForm({ ...form, domainLimit: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
-        </div>
-        <div>
-          <label className="text-[11px] font-bold text-slate-600 block mb-1">Team Seats</label>
-          <Input type="number" min="1" value={form.teamSeats} onChange={(e) => setForm({ ...form, teamSeats: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
-        </div>
-      </div>
-      <div>
-        <label className="text-[11px] font-bold text-slate-600 block mb-1">Bulk Validation Limit</label>
-        <Input type="number" min="-1" value={form.bulkValidationLimit} onChange={(e) => setForm({ ...form, bulkValidationLimit: Number(e.target.value) })} className="h-9 rounded-lg text-sm font-mono" />
-      </div>
-      <div className="flex flex-wrap gap-4 pt-1">
-        {(["roleDetection", "publicDetection", "customBlocklist"] as const).map((key) => (
-          <label key={key} className="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" checked={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.checked })} className="w-4 h-4 rounded border-slate-300 text-[#FF7A00] focus:ring-[#FF7A00]" />
-            <span className="text-xs font-semibold text-slate-700">{key === "roleDetection" ? "Role Detection" : key === "publicDetection" ? "Public Detection" : "Custom Blocklist"}</span>
-          </label>
-        ))}
-      </div>
-      <div className="flex justify-end gap-2 pt-2">
-        <Button variant="outline" onClick={() => { if (isEdit) { setEditingPlan(null); } else { setIsCreateOpen(false); } setForm(EMPTY_FORM); }} className="rounded-lg text-xs font-semibold">Cancel</Button>
-        <Button
-          onClick={isEdit ? handleUpdatePlan : handleCreatePlan}
-          disabled={actionLoading === (isEdit ? "update" : "create")}
-          className="bg-[#FF7A00] hover:bg-[#E56E00] text-white rounded-lg text-xs font-semibold"
-        >
-          {actionLoading === (isEdit ? "update" : "create") ? "Saving..." : isEdit ? "Save Changes" : "Create Plan"}
-        </Button>
       </div>
     </div>
   );
@@ -214,14 +310,7 @@ export default function AdminPlansPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Manage Plans</h2>
-          <p className="text-xs text-slate-500 font-medium">Create and customize pricing tiers, validation quotas, and domain limits.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button onClick={loadPlans} variant="outline" className="rounded-xl text-xs font-semibold gap-1.5">
-            <RotateCw className="w-3.5 h-3.5" /> Refresh
-          </Button>
+        <div className="flex items-center gap-2 ml-auto">
           <Button onClick={() => { setForm(EMPTY_FORM); setIsCreateOpen(true); }} className="bg-[#FF7A00] hover:bg-[#E56E00] text-white rounded-xl text-xs font-semibold gap-1.5">
             <Plus className="w-3.5 h-3.5" /> New Plan
           </Button>
@@ -229,12 +318,12 @@ export default function AdminPlansPage() {
       </div>
 
       {/* Create Dialog */}
-      <Dialog isOpen={isCreateOpen} onClose={() => { setIsCreateOpen(false); setForm(EMPTY_FORM); }} title="Create New Plan">
+      <Dialog className="max-w-4xl" isOpen={isCreateOpen} onClose={() => { setIsCreateOpen(false); setForm(EMPTY_FORM); }} title="Create New Plan">
         {formFields(false)}
       </Dialog>
 
       {/* Edit Dialog */}
-      <Dialog isOpen={editingPlan !== null} onClose={() => { setEditingPlan(null); setForm(EMPTY_FORM); }} title={`Edit Plan: ${editingPlan?.name ?? ""}`}>
+      <Dialog className="max-w-4xl" isOpen={editingPlan !== null} onClose={() => { setEditingPlan(null); setForm(EMPTY_FORM); }} title={`Edit Plan: ${editingPlan?.name ?? ""}`}>
         {formFields(true)}
       </Dialog>
 

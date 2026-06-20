@@ -33,43 +33,39 @@ export function RecentValidations({ logs }: RecentValidationsProps) {
   }
 
   return (
-    <SectionCard 
-      title="Recent Validations"
-      className="h-[400px]"
-      headerAction={
+    <div className="bg-card rounded-2xl border border-borderSubtle shadow-sm overflow-hidden flex flex-col">
+      <div className="px-5 py-4 flex items-center justify-between border-b border-borderSubtle bg-card">
+        <h3 className="text-sm font-bold text-foreground">Recent Validations</h3>
         <Link 
           href="/dashboard/usage" 
-          className="caption text-primary hover:underline bg-primary/10 px-3 py-1.5 rounded-lg"
+          className="text-[10px] font-bold text-primary hover:text-primaryDark uppercase tracking-widest"
         >
-          View All Logs
+          View All
         </Link>
-      }
-    >
-      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-        <div className="space-y-3">
+      </div>
+      <div className="flex-1 overflow-y-auto max-h-[360px] custom-scrollbar bg-card">
+        <div className="flex flex-col">
           {logs.map((log) => {
             const isValid = log.status === "VALID";
             return (
-              <div key={log.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg shrink-0 ${isValid ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
-                    {isValid ? <Icon icon={ShieldCheck} sizeVariant="sm" /> : <Icon icon={ShieldAlert} sizeVariant="sm" />}
-                  </div>
+              <div key={log.id} className="flex items-center justify-between px-5 py-3 border-b border-borderSubtle/50 last:border-0 hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${isValid ? 'bg-success' : 'bg-danger'}`} />
                   <div className="flex flex-col">
-                    <span className="body-sm font-bold text-foreground truncate max-w-[120px] sm:max-w-[180px]">
+                    <span className="text-xs font-bold text-foreground truncate max-w-[140px] sm:max-w-[240px]">
                       {log.validatedDomain}
                     </span>
-                    <span className="caption truncate max-w-[120px] sm:max-w-[180px]">
-                      via {log.domain.hostname}
+                    <span className="text-[10px] text-muted-foreground truncate max-w-[140px] sm:max-w-[240px]">
+                      {log.domain.hostname}
                     </span>
                   </div>
                 </div>
                 
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <span className={`caption px-2 py-0.5 rounded ${isValid ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
+                <div className="flex items-center gap-6 shrink-0">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest ${isValid ? 'bg-successGhost text-success' : 'bg-dangerGhost text-danger'}`}>
                     {isValid ? "Passed" : "Blocked"}
                   </span>
-                  <span className="text-[10px] font-semibold text-muted-foreground">
+                  <span className="text-[10px] font-medium text-muted-foreground w-12 text-right">
                     {formatTimeAgo(new Date(log.createdAt))}
                   </span>
                 </div>
@@ -78,7 +74,7 @@ export function RecentValidations({ logs }: RecentValidationsProps) {
           })}
         </div>
       </div>
-    </SectionCard>
+    </div>
   );
 }
 

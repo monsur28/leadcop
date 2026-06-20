@@ -51,12 +51,10 @@ export async function getPlansAction(includeInactive: boolean = false) {
         yearlyPrice: 0,
         quotaLimit: 1000,
         domainLimit: 1,
-        bulkValidationLimit: 100,
-        teamSeats: 1,
+        apiKeyLimit: 1,
+        rateLimitPerMinute: 60,
         roleDetection: false,
         publicDetection: true,
-        customBlocklist: false,
-
       });
       plans = [freePlan];
     }

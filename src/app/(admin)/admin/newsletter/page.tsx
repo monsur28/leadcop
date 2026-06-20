@@ -33,11 +33,7 @@ export default function AdminNewsletterPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Newsletter Subscribers</h2>
-          <p className="text-xs text-slate-500 font-medium">Audit registered email lists, subscription statuses, and export data feeds.</p>
-        </div>
-        <Button 
+<Button 
           onClick={loadSubscribers}
           variant="outline"
           className="rounded-xl text-xs font-semibold gap-1.5"

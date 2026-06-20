@@ -223,11 +223,7 @@ export default function AdminBlogPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Marketing Blog</h2>
-          <p className="text-xs text-slate-500 font-medium">Compose articles, publish announcements, and edit existing marketing stories.</p>
-        </div>
-        <div className="flex items-center gap-2">
+<div className="flex items-center gap-2">
           <Button onClick={loadPosts} variant="outline" className="rounded-xl text-xs font-semibold gap-1.5">
             <RotateCw className="w-3.5 h-3.5" /> Refresh
           </Button>

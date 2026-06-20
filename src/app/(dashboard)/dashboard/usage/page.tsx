@@ -88,7 +88,7 @@ export default function UsagePage() {
     activeKeysCount: 0
   };
 
-  const used = summary.counter?.usedValidations || 0;
+  const used = summary.counter?.usedValidations ?? 0;
   const limit = summary.subscription 
     ? (summary.subscription.plan.quotaLimit + summary.subscription.extraCredits) 
     : 1000;

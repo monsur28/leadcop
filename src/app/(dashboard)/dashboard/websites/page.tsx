@@ -131,8 +131,8 @@ export default function DomainsPage() {
 
   const quotaLimit = usageStats?.subscription ? (usageStats.subscription.plan.quotaLimit + usageStats.subscription.extraCredits) : 0;
   const isUnlimited = usageStats?.subscription?.isUnlimited || false;
-  const validationsUsed = usageStats?.counter?.usedValidations || 0;
-  const globalUsagePercentage = isUnlimited ? 0 : Math.round((validationsUsed / quotaLimit) * 100) || 0;
+  const validationsUsed = usageStats?.counter?.usedValidations ?? 0;
+  const globalUsagePercentage = isUnlimited ? 0 : Math.round((validationsUsed / quotaLimit) * 100) || 0; // || 0 is fine here for NaN checking if quotaLimit is 0
   const currentPlanName = usageStats?.subscription?.plan?.name || "Free";
 
   return (
@@ -217,7 +217,7 @@ export default function DomainsPage() {
       ) : domains.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {domains.map((domain) => {
-            const domainValidations = domain._count?.validationLogs || 0;
+            const domainValidations = domain._count?.validationLogs ?? 0;
             const usagePercent = isUnlimited ? 0 : Math.round((domainValidations / quotaLimit) * 100) || 0;
             const hasKey = domain.apiKeys && domain.apiKeys.length > 0;
             

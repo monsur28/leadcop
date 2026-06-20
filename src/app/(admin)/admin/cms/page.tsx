@@ -205,11 +205,7 @@ export default function AdminCmsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">CMS Pages</h2>
-          <p className="text-xs text-slate-500 font-medium">Manage legal documents, static pages, and landing text blocks.</p>
-        </div>
-        <div className="flex items-center gap-2">
+<div className="flex items-center gap-2">
           <Button onClick={loadPages} variant="outline" className="rounded-xl text-xs font-semibold gap-1.5">
             <RotateCw className="w-3.5 h-3.5" /> Refresh
           </Button>

@@ -4,7 +4,7 @@ import * as React from "react";
 import { getPlansAction } from "@/features/plans/actions";
 import { 
   getMyLimitsAction, 
-  createUpgradeRequestAction, 
+  getMyLimitsAction, 
   getPendingUpgradeRequestAction 
 } from "@/features/subscriptions/actions";
 import { Button } from "@/components/ui/button";
@@ -27,9 +27,10 @@ interface Plan {
   domainLimit: number;
   roleDetection: boolean;
   publicDetection: boolean;
-  customBlocklist: boolean;
-  bulkValidationLimit: number;
-  teamSeats: number;
+  apiKeyLimit: number;
+  rateLimitPerMinute: number;
+  lemonMonthlyVariantId?: string;
+  lemonYearlyVariantId?: string;
 }
 
 interface UserLimits {
@@ -37,9 +38,8 @@ interface UserLimits {
   domainLimit: number;
   roleDetection: boolean;
   publicDetection: boolean;
-  customBlocklist: boolean;
-  bulkValidationLimit: number;
-  teamSeats: number;
+  apiKeyLimit: number;
+  rateLimitPerMinute: number;
   subscription: {
     planId: string;
     extraCredits: number;
@@ -48,8 +48,10 @@ interface UserLimits {
     status: string;
     plan: {
       name: string;
+      name: string;
       slug: string;
     };
+    customerPortalUrl?: string;
   } | null;
 }
 
@@ -94,22 +96,35 @@ export default function BillingPage() {
     loadBillingData();
   }, []);
 
-  const handleRequestUpgrade = async (planId: string) => {
+  const handleCheckout = async (variantId: string | undefined) => {
+    if (!variantId) {
+      setErrorMsg("This plan is not configured for self-serve checkout.");
+      return;
+    }
+    
     setErrorMsg(null);
     setSuccessMsg(null);
-    setActionLoading(planId);
+    setActionLoading(variantId);
 
-    const res = await createUpgradeRequestAction(planId);
-    if (res.success) {
-      setSuccessMsg("Upgrade request submitted! An administrator will review your request shortly.");
-      const pendingRes = await getPendingUpgradeRequestAction();
-      if (pendingRes.success && pendingRes.data) {
-        setPendingRequest(pendingRes.data as unknown as PendingUpgradeRequest);
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ variantId })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        setErrorMsg(data.error || "Failed to initiate checkout.");
       }
-    } else {
-      setErrorMsg(res.error || "Failed to submit upgrade request.");
+    } catch (e) {
+      setErrorMsg("Network error occurred while contacting billing server.");
+    } finally {
+      setActionLoading(null);
     }
-    setActionLoading(null);
   };
 
   if (loading) {
@@ -129,7 +144,19 @@ export default function BillingPage() {
       {/* Header Panel */}
       <div>
         <h2 className="text-lg font-bold text-slate-900">Plan & Billing</h2>
-        <p className="text-xs text-slate-500 font-medium">Manage your subscription, view plan features, and request tier upgrades.</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-slate-500 font-medium">Manage your subscription, view plan features, and securely upgrade your account.</p>
+          {limits?.subscription?.customerPortalUrl && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs font-bold"
+              onClick={() => window.open(limits.subscription!.customerPortalUrl, "_blank")}
+            >
+              Manage Billing Details
+            </Button>
+          )}
+        </div>
       </div>
 
       {successMsg && (
@@ -158,7 +185,7 @@ export default function BillingPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
             <div>
               <span className="block text-[10px] text-slate-400 font-bold uppercase">Monthly Quota</span>
               <span className="font-semibold text-slate-700">
@@ -167,15 +194,19 @@ export default function BillingPage() {
             </div>
             <div>
               <span className="block text-[10px] text-slate-400 font-bold uppercase">Domains Allowed</span>
-              <span className="font-semibold text-slate-700">{limits?.domainLimit} domain(s)</span>
+              <span className="font-semibold text-slate-700">{limits?.domainLimit === -1 ? "Unlimited" : limits?.domainLimit}</span>
+            </div>
+            <div>
+              <span className="block text-[10px] text-slate-400 font-bold uppercase">API Keys</span>
+              <span className="font-semibold text-slate-700">{limits?.apiKeyLimit === -1 ? "Unlimited" : limits?.apiKeyLimit}</span>
+            </div>
+            <div>
+              <span className="block text-[10px] text-slate-400 font-bold uppercase">Rate Limit</span>
+              <span className="font-semibold text-slate-700">{limits?.rateLimitPerMinute === -1 ? "Unlimited" : `${limits?.rateLimitPerMinute}/min`}</span>
             </div>
             <div>
               <span className="block text-[10px] text-slate-400 font-bold uppercase">Role Detection</span>
               <span className="font-semibold text-slate-700">{limits?.roleDetection ? "Enabled" : "Disabled"}</span>
-            </div>
-            <div>
-              <span className="block text-[10px] text-slate-400 font-bold uppercase">Custom Blocklists</span>
-              <span className="font-semibold text-slate-700">{limits?.customBlocklist ? "Enabled" : "Disabled"}</span>
             </div>
           </div>
         </div>
@@ -216,7 +247,7 @@ export default function BillingPage() {
       <div className="space-y-4">
         <div>
           <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Available Subscription Tiers</h3>
-          <p className="text-[10px] text-slate-500 font-medium">Select a tier below to request an instant account upgrade.</p>
+          <p className="text-[10px] text-slate-500 font-medium">Select a tier below to upgrade your account instantly via Lemon Squeezy.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -245,7 +276,7 @@ export default function BillingPage() {
                       )}
                     </div>
                     <div className="flex items-baseline gap-0.5">
-                      <span className="text-2xl font-black text-slate-900">${plan.monthlyPrice}</span>
+                      <span className="text-2xl font-black text-slate-900">${plan.monthlyPrice === 0 ? "0" : (plan.monthlyPrice / 100)}</span>
                       <span className="text-[10px] text-slate-400 font-semibold">/mo</span>
                     </div>
                   </div>
@@ -263,13 +294,14 @@ export default function BillingPage() {
                       <Check className="w-3.5 h-3.5 text-[#FF7A00] shrink-0" />
                       <span>{plan.roleDetection ? "Role account filters" : "No role email blocking"}</span>
                     </div>
+
                     <div className="flex items-center gap-1.5">
                       <Check className="w-3.5 h-3.5 text-[#FF7A00] shrink-0" />
-                      <span>{plan.customBlocklist ? "Custom blocklists" : "No custom blocklists"}</span>
+                      <span>{plan.apiKeyLimit === -1 ? "Unlimited" : plan.apiKeyLimit} API Keys</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Check className="w-3.5 h-3.5 text-[#FF7A00] shrink-0" />
-                      <span>{plan.teamSeats} team seats</span>
+                      <span>{plan.rateLimitPerMinute === -1 ? "Unlimited" : `${plan.rateLimitPerMinute} req/min`}</span>
                     </div>
                   </div>
                 </div>
@@ -291,8 +323,8 @@ export default function BillingPage() {
                     </Button>
                   ) : (
                     <Button
-                      onClick={() => handleRequestUpgrade(plan.id)}
-                      disabled={actionLoading !== null || pendingRequest !== null}
+                      onClick={() => handleCheckout(plan.lemonMonthlyVariantId)}
+                      disabled={actionLoading !== null}
                       className={cn(
                         "w-full rounded-xl text-xs font-bold transition-all shadow-sm",
                         plan.slug === "free"
@@ -300,7 +332,7 @@ export default function BillingPage() {
                           : "bg-[#FF7A00] hover:bg-[#E66E00] text-white"
                       )}
                     >
-                      {actionLoading === plan.id ? "Requesting..." : "Upgrade Plan"}
+                      {actionLoading === plan.lemonMonthlyVariantId ? "Redirecting..." : "Upgrade Plan"}
                     </Button>
                   )}
                 </div>

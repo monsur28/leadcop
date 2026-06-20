@@ -1,22 +1,35 @@
 export const COLORS = {
+  // Brand — LeadCop Orange
   primary: "#FF7A00",
-  primaryLight: "#FF9D3D",
-  primaryDark: "#E66900",
+  primaryLight: "#FF9F43",
+  primaryDark: "#E66E00",
+  primaryGhost: "rgba(255,122,0,0.08)",
+  primaryGlow: "rgba(255,122,0,0.20)",
 
-  navy: "#081225",
-  navyLight: "#0F172A",
+  // Neutrals
+  navy: "#0a0a0a",
+  navyLight: "#171717",
 
+  // Semantic
   success: "#10B981",
+  successGhost: "rgba(16,185,129,0.10)",
   warning: "#F59E0B",
+  warningGhost: "rgba(245,158,11,0.10)",
   danger: "#EF4444",
+  dangerGhost: "rgba(239,68,68,0.10)",
+  info: "#3B82F6",
+  infoGhost: "rgba(59,130,246,0.10)",
 
-  background: "#F8FAFC",
+  // Surface
+  background: "#FAFAFA",
   card: "#FFFFFF",
-  border: "#E2E8F0",
+  border: "#E5E5E5",
+  borderSubtle: "#F0F0F0",
 
-  textPrimary: "#0F172A",
-  textSecondary: "#64748B",
-  textMuted: "#94A3B8",
+  // Text
+  textPrimary: "#171717",
+  textSecondary: "#737373",
+  textMuted: "#A3A3A3",
 };
 
 export const TYPOGRAPHY = {

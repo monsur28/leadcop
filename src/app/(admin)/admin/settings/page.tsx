@@ -151,11 +151,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Admin Settings</h2>
-          <p className="text-xs text-slate-500 font-medium">System overview, environment info, and quick navigation to admin modules.</p>
-        </div>
-        <Button onClick={loadStats} variant="outline" className="rounded-xl text-xs font-semibold gap-1.5">
+<Button onClick={loadStats} variant="outline" className="rounded-xl text-xs font-semibold gap-1.5">
           <RotateCw className="w-3.5 h-3.5" /> Refresh
         </Button>
       </div>

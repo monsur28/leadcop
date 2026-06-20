@@ -224,7 +224,9 @@ export class UsageRepository {
       blockedCount,
       recentLogs, // return the raw validation logs for the new UI component
       trends,
-      totalValidationsCount
+      totalValidationsCount,
+      recentDomains,
+      recentKeys
     };
   }
 

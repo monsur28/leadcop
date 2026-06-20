@@ -36,7 +36,7 @@ describe('Domain Actions', () => {
         id: 'sub-1', userId: 'user-1', planId: 'plan-1', status: 'ACTIVE', currentPeriodEnd: new Date(), extraCredits: 0, createdAt: new Date(), updatedAt: new Date(), isUnlimited: false
       } as any);
       prismaMock.plan.findUnique.mockResolvedValue({
-        id: 'plan-1', name: 'Pro', monthlyPrice: 10, yearlyPrice: 100, quotaLimit: 1000, domainLimit: 1, teamSeats: 1, roleDetection: false, customBlocklist: false, publicDetection: false, bulkValidationLimit: 1000, slug: 'pro', createdAt: new Date(), updatedAt: new Date()
+        id: 'plan-1', name: 'Pro', monthlyPrice: 10, yearlyPrice: 100, quotaLimit: 1000, domainLimit: 1, apiKeyLimit: 10, rateLimitPerMinute: 60, roleDetection: false, publicDetection: false, slug: 'pro', createdAt: new Date(), updatedAt: new Date()
       } as any);
 
       const res = await addDomainAction({ hostname: 'test.com' });

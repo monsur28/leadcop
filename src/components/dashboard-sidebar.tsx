@@ -3,140 +3,182 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { 
-  LayoutDashboard, 
-  Globe, 
-  Key, 
-  BarChart3, 
-  CreditCard, 
-  Settings, 
-  HelpCircle, 
-  BookOpen, 
-  LogOut, 
-  ShieldCheck 
+import {
+  LayoutDashboard,
+  Globe,
+  BarChart3,
+  CreditCard,
+  Settings,
+  HelpCircle,
+  BookOpen,
+  LogOut,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { signOut } from "next-auth/react";
 
+interface SidebarUser {
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  globalRole?: string | null;
+}
+
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ElementType;
+}
+
 interface SidebarProps {
-  user: {
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-    globalRole?: string | null;
-  };
+  user: SidebarUser;
   className?: string;
   onItemClick?: () => void;
+}
+
+const PRIMARY_NAV: NavItem[] = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Websites", href: "/dashboard/websites", icon: Globe },
+  { name: "Usage", href: "/dashboard/usage", icon: BarChart3 },
+  { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+];
+
+const SECONDARY_NAV: NavItem[] = [
+  { name: "Support", href: "/support", icon: HelpCircle },
+  { name: "Documentation", href: "/docs", icon: BookOpen },
+];
+
+const ADMIN_NAV_ITEM: NavItem = { name: "Admin Panel", href: "/admin", icon: ShieldCheck };
+
+function NavLink({
+  item,
+  isActive,
+  onClick,
+}: {
+  item: NavItem;
+  isActive: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 px-3 py-2.5 text-sm font-semibold rounded-xl transition-all duration-150",
+        isActive
+          ? "bg-[color:var(--sidebar-active-bg)] text-[color:var(--sidebar-active-text)]"
+          : "text-[color:var(--sidebar-text)] hover:bg-muted hover:text-[color:var(--sidebar-text-hover)]"
+      )}
+    >
+      <item.icon
+        className={cn(
+          "w-4 h-4 shrink-0 transition-colors",
+          isActive
+            ? "text-[color:var(--sidebar-active-text)]"
+            : "text-[color:var(--muted-foreground)]"
+        )}
+      />
+      {item.name}
+      {isActive && (
+        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[color:var(--sidebar-active-text)]" />
+      )}
+    </Link>
+  );
 }
 
 export function DashboardSidebar({ user, className, onItemClick }: SidebarProps) {
   const pathname = usePathname();
 
-  const navItems = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Websites", href: "/dashboard/websites", icon: Globe },
-    { name: "Usage", href: "/dashboard/usage", icon: BarChart3 },
-    { name: "Billing", href: "/dashboard/billing", icon: CreditCard },
-    { name: "Settings", href: "/dashboard/settings", icon: Settings },
-  ];
+  const secondaryItems: NavItem[] =
+    user.globalRole === "ADMIN" ? [ADMIN_NAV_ITEM, ...SECONDARY_NAV] : SECONDARY_NAV;
 
-  const secondaryItems = [
-    { name: "Support", href: "/support", icon: HelpCircle },
-    { name: "Documentation", href: "/docs", icon: BookOpen },
-  ];
+  const isActive = (href: string) =>
+    href === "/dashboard" ? pathname === href : pathname.startsWith(href);
 
-  if ((user as any).globalRole === "ADMIN") {
-    secondaryItems.unshift({ name: "Admin Panel", href: "/admin", icon: ShieldCheck });
-  }
+  const userInitial = user.name?.[0] ?? user.email?.[0] ?? "U";
 
   return (
-    <aside className={cn(
-      "w-64 border-r border-slate-200 bg-white flex-col h-screen shrink-0",
-      className || "hidden md:flex sticky top-0"
-    )}>
-      {/* Branding */}
-      <div className="h-16 px-6 border-b border-slate-100 flex items-center">
+    <aside
+      className={cn(
+        "w-64 flex-col h-screen shrink-0 border-r",
+        "bg-[color:var(--sidebar-bg)] border-[color:var(--sidebar-border)]",
+        className ?? "hidden md:flex sticky top-0"
+      )}
+    >
+      {/* Logo */}
+      <div className="h-16 px-5 border-b border-[color:var(--sidebar-border)] flex items-center">
         <Link href="/dashboard" className="flex items-center gap-2.5 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-[#FF7A00] to-[#FF9F43] text-white shadow-sm shadow-orange-500/10">
-            <ShieldCheck className="h-4.5 w-4.5 stroke-[2.5]" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-[color:var(--primary-light)] text-primary-foreground shadow-sm shadow-[color:var(--primary-glow)]">
+            <ShieldCheck className="h-4 w-4 stroke-[2.5]" />
           </div>
-          <span className="font-bold tracking-tight text-slate-900">
-            LeadCop
+          <span className="font-black tracking-tight text-foreground text-[15px]">
+            Lead<span className="text-primary">Cop</span>
           </span>
         </Link>
       </div>
 
-      {/* Navigation Links */}
-      <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 text-sm font-semibold rounded-xl transition-all",
-                isActive
-                  ? "bg-orange-50 text-[#FF7A00]"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              )}
-              onClick={onItemClick}
-            >
-              <item.icon className={cn("w-4.5 h-4.5 shrink-0", isActive ? "text-[#FF7A00]" : "text-slate-400")} />
-              {item.name}
-            </Link>
-          );
-        })}
+      {/* Primary Nav */}
+      <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
+        <p className="px-3 pt-1 pb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+          Main
+        </p>
+        {PRIMARY_NAV.map((item) => (
+          <NavLink
+            key={item.href}
+            item={item}
+            isActive={isActive(item.href)}
+            onClick={onItemClick}
+          />
+        ))}
 
-        <div className="py-2">
-          <div className="h-px bg-slate-100 my-2" />
+        <div className="pt-4 pb-1">
+          <div className="h-px bg-border" />
+          <p className="px-3 pt-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+            Resources
+          </p>
         </div>
 
-        {secondaryItems.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 text-sm font-semibold rounded-xl transition-all",
-                isActive
-                  ? "bg-orange-50 text-[#FF7A00]"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              )}
-              onClick={onItemClick}
-            >
-              <item.icon className="w-4.5 h-4.5 text-slate-400 shrink-0" />
-              {item.name}
-            </Link>
-          );
-        })}
+        {secondaryItems.map((item) => (
+          <NavLink
+            key={item.href}
+            item={item}
+            isActive={isActive(item.href)}
+            onClick={onItemClick}
+          />
+        ))}
       </nav>
 
       {/* User Footer */}
-      <div className="p-4 border-t border-slate-100 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5 overflow-hidden">
+      <div className="p-3 border-t border-[color:var(--sidebar-border)]">
+        <div className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-muted transition-colors group">
           {user.image ? (
-            <Image src={user.image} alt="User Avatar" width={32} height={32} className="rounded-full border border-slate-200" unoptimized />
+            <Image
+              src={user.image}
+              alt={user.name ?? "User avatar"}
+              width={32}
+              height={32}
+              className="rounded-full border border-border shrink-0"
+              unoptimized
+            />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold text-xs text-slate-700 border border-slate-200 uppercase">
-              {user.name ? user.name[0] : user.email ? user.email[0] : "U"}
+            <div className="w-8 h-8 rounded-full bg-[color:var(--primary-ghost)] border border-primary/20 flex items-center justify-center font-bold text-xs text-primary uppercase shrink-0">
+              {userInitial}
             </div>
           )}
-          <div className="overflow-hidden leading-tight">
-            <h4 className="text-sm font-bold text-slate-900 truncate">
-              {user.name || "User"}
-            </h4>
-            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+          <div className="flex-1 overflow-hidden leading-tight">
+            <p className="text-sm font-bold text-foreground truncate">{user.name ?? "User"}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
           </div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-danger hover:bg-danger/10 transition-colors shrink-0"
+            title="Sign Out"
+            aria-label="Sign out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors shrink-0"
-          title="Sign Out"
-        >
-          <LogOut className="w-4.5 h-4.5" />
-        </button>
       </div>
     </aside>
   );

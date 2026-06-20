@@ -10,9 +10,10 @@ interface DialogProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string;
 }
 
-export function Dialog({ isOpen, onClose, title, children }: DialogProps) {
+export function Dialog({ isOpen, onClose, title, children, className }: DialogProps) {
   React.useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -44,8 +45,9 @@ export function Dialog({ isOpen, onClose, title, children }: DialogProps) {
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              "relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-100 z-10",
-              "focus:outline-none"
+              "relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-100 z-10 max-h-[90vh] overflow-y-auto",
+              "focus:outline-none",
+              className
             )}
           >
             <div className="flex items-center justify-between mb-4">

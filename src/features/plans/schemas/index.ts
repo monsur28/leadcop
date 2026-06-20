@@ -6,11 +6,13 @@ export const planBaseSchema = z.object({
   yearlyPrice: z.number().int().min(0, "Price must be positive"),
   quotaLimit: z.number().int().min(-1), // -1 represents unlimited
   domainLimit: z.number().int().min(-1),
+  apiKeyLimit: z.number().int().min(-1),
+  rateLimitPerMinute: z.number().int().min(-1),
   roleDetection: z.boolean(),
   publicDetection: z.boolean(),
-  customBlocklist: z.boolean(),
-  bulkValidationLimit: z.number().int().min(-1),
-  teamSeats: z.number().int().min(1),
+  lemonSqueezyProductId: z.string().optional().nullable(),
+  lemonMonthlyVariantId: z.string().optional().nullable(),
+  lemonYearlyVariantId: z.string().optional().nullable(),
 });
 
 export const createPlanSchema = planBaseSchema.extend({

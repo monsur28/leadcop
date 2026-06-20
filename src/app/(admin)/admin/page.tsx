@@ -150,26 +150,26 @@ export default async function AdminDashboardPage() {
 
           <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
             <div className="flex items-center gap-2 mb-2 text-slate-400">
-              <Clock className="w-4 h-4 text-blue-400" />
+              <Clock className="w-4 h-4 text-slate-500" />
               <span className="text-xs font-bold uppercase">Avg Response</span>
             </div>
-            <div className="text-xl font-bold text-white">12ms</div>
+            <div className="text-xl font-bold text-slate-500 text-sm">N/A</div>
           </div>
 
           <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
             <div className="flex items-center gap-2 mb-2 text-slate-400">
-              <AlertTriangle className="w-4 h-4 text-red-400" />
+              <AlertTriangle className="w-4 h-4 text-slate-500" />
               <span className="text-xs font-bold uppercase">Failed Requests</span>
             </div>
-            <div className="text-xl font-bold text-white">0.01%</div>
+            <div className="text-xl font-bold text-slate-500 text-sm">N/A</div>
           </div>
 
           <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
             <div className="flex items-center gap-2 mb-2 text-slate-400">
-              <Lock className="w-4 h-4 text-orange-400" />
+              <Lock className="w-4 h-4 text-slate-500" />
               <span className="text-xs font-bold uppercase">Rate Limited</span>
             </div>
-            <div className="text-xl font-bold text-white">14 <span className="text-xs text-slate-500 font-normal">/hr</span></div>
+            <div className="text-xl font-bold text-slate-500 text-sm">N/A</div>
           </div>
 
           <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">

@@ -58,12 +58,7 @@ const SLA_TIERS = [
 export default function AdminSupportPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-slate-900">Support Configuration</h2>
-          <p className="text-xs text-slate-500 font-medium">Manage support channels, response SLAs, and customer communication settings.</p>
-        </div>
-      </div>
+      
 
       {/* Support Channels Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
